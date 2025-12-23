@@ -12,6 +12,17 @@
 #define LCDW 20  // LCD column length
 #define LCDH 4   // LCD number of rows
 
+#define HD44780 0
+#define OLED 1
+
+#ifndef DISPLAY_BACKEND
+#define DISPLAY_BACKEND HD44780
+#endif
+
+#if DISPLAY_BACKEND != HD44780
+#error "Only the HD44780 backend is implemented; update the firmware before selecting another backend."
+#endif
+
 // initialize the library with the numbers of the interface pins
 /*	Note, while all the ardu documentation and schematics show 4-bit operation. 
 	It seems the library actually supports both 8-bit and 4-bit mode. It attempts

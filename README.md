@@ -63,14 +63,30 @@ Currently there are no known bugs. It seems to work fine on my test rig, and the
 The firmware now builds via PlatformIO with sources under `src/main.cpp`. Because the CLI lives inside the VS Code extension’s virtualenv, call it with the full path:
 
 ```
-# Build every environment (currently just `uno`)
-& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run
+$env:PIO = "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe"
+```
 
-# Upload the compiled firmware to a connected board
-& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -t upload
+### Environments & Backends
+
+PlatformIO defines two environments, each pinning the `DISPLAY_BACKEND` macro to `HD44780` for now:
+
+- `uno_hd44780` (default)
+- `mega2560_hd44780`
+
+To target other boards or add backends (e.g., OLED), duplicate one of the environments in `platformio.ini` and adjust `board` plus `build_flags = -DDISPLAY_BACKEND=<YOUR_BACKEND>`.
+
+```
+# Build the default environment (uno)
+& $env:PIO run
+
+# Build a specific environment, e.g., Mega2560
+& $env:PIO run -e mega2560_hd44780
+
+# Upload the compiled firmware to the connected board
+& $env:PIO run -t upload -e uno_hd44780
 
 # Open a serial monitor at the firmware’s 57600 baud
-& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" device monitor -b 57600
+& $env:PIO device monitor -b 57600
 ```
 
 Project configuration lives in `platformio.ini`, which pins the LiquidCrystal dependency and default serial/monitor speed so builds remain reproducible.

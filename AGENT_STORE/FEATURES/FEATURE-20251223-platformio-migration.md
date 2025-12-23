@@ -34,3 +34,4 @@ The current repo ships only `sketch/sketch.ino`, which depends on the Arduino ID
 # Validation Notes
 - Capture the `pio run` commands and target environments exercised (e.g., `pio run -e uno`, `pio run -e mega2560`).
 - Note any follow-up issues (missing libraries, upload failures) if they block completion so they can be logged as BUG tickets.
+- 2025-12-23: `pio run -e uno_hd44780` and `pio run -e mega2560_hd44780` both succeed using the VS Code bundled CLI path (`$env:USERPROFILE\.platformio\penv\Scripts\pio.exe`).
