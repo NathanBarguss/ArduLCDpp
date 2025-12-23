@@ -83,6 +83,8 @@ PlatformIO defines two environments, each pinning the `DISPLAY_BACKEND` macro to
 - `uno_hd44780` (default)
 - `mega2560_hd44780`
 
+All rendering now routes through the `src/display/IDisplay.h` abstraction. `HD44780Display` (under `src/display/`) wraps LiquidCrystal and is selected by default inside `src/display/display_factory.cpp`, so adding new hardware means implementing the same interface and wiring it into the factory.
+
 To target other boards or add backends (e.g., OLED), duplicate one of the environments in `platformio.ini` and adjust `board` plus `build_flags = -DDISPLAY_BACKEND=<YOUR_BACKEND>`.
 
 ```
