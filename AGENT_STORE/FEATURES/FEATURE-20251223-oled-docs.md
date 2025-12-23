@@ -1,5 +1,5 @@
 ﻿# Goal
-Document the OLED wiring, firmware build flags, and LCDproc configuration so new users can reproduce the 16x3 OLED setup end-to-end.
+Document the OLED wiring, firmware build flags, and LCDproc configuration so new users can reproduce the 16x4 OLED setup end-to-end.
 
 # Background
 The "product" is a los-panel bridge, so documentation is part of the user experience. Contributors need a single source of truth covering hardware wiring, compile-time switches, and LCDd.conf settings.
@@ -8,8 +8,8 @@ The "product" is a los-panel bridge, so documentation is part of the user experi
 - Create `/docs/oled_i2c_setup.md` describing wiring (SDA/SCL/reset/power), required components, and photos or diagrams if available.
 - Include instructions for compiling the firmware with `DISPLAY_BACKEND=OLED`, plus macros like `OLED_RESET_PIN` and `OLED_I2C_ADDR`.
 - Document the HD44780 command translation differences (e.g., blink is best-effort, CGRAM writes are emulated) so users know which los-panel features behave differently.
-- Provide an LCDd.conf snippet showing Width 16, Height 3, and any los-panel tuning.
-- List current limitations (e.g., unused 4th row, potential flicker, blink reliability) so expectations are clear.
+- Provide an LCDd.conf snippet showing Width 16, Height 4, and any los-panel tuning.
+- List current limitations (e.g., cursor blink best-effort, slower scrolling) so expectations are clear.
 
 # Dependencies
 - OLED backend feature completed so docs reflect actual behavior.
