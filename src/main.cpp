@@ -1,19 +1,16 @@
+#include <Arduino.h>
 #include <avr/io.h>
 #include <util/delay.h>
-#include <Arduino.h>
-// vim: ts=4 ai
+#include <LiquidCrystal.h>
 
+#include <stdio.h>
+
+// vim: ts=4 ai
 #define LED_PIN 10		// This is the pin the backlight is controlled by, it must be a PWM pin
 #define STARTUP_BRIGHTNESS 2  // What backlight brightness to start up with (8-bit value)
 #define BAUDRATE 57600 // What baudrate to use for the serial port
 #define LCDW 20  // LCD column length
 #define LCDH 4   // LCD number of rows
-
-// include the LCD library code:
-#include <LiquidCrystal.h>
-
-// And this is ths Hardware serial port (which is also bound to the UART->USB chip)
-#include <HardwareSerial.cpp>
 
 // initialize the library with the numbers of the interface pins
 /*	Note, while all the ardu documentation and schematics show 4-bit operation. 
@@ -97,4 +94,3 @@ void loop() {
 				break;
 	}
 }
-

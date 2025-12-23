@@ -58,7 +58,26 @@ Currently there are no known bugs. It seems to work fine on my test rig, and the
 
 # Building
 
-Building is using the standard Arduino IDE, making sure that the libraries needed (e.g. LiquidCrystal) are available.
+## PlatformIO (recommended)
+
+The firmware now builds via PlatformIO with sources under `src/main.cpp`. Because the CLI lives inside the VS Code extension’s virtualenv, call it with the full path:
+
+```
+# Build every environment (currently just `uno`)
+& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run
+
+# Upload the compiled firmware to a connected board
+& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -t upload
+
+# Open a serial monitor at the firmware’s 57600 baud
+& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" device monitor -b 57600
+```
+
+Project configuration lives in `platformio.ini`, which pins the LiquidCrystal dependency and default serial/monitor speed so builds remain reproducible.
+
+## Arduino IDE (legacy)
+
+If you still prefer the Arduino IDE, you can open `src/main.cpp` as a sketch (the code is fully compatible) and manually ensure the LiquidCrystal library is installed. PlatformIO will eventually replace these instructions entirely, but the legacy toolchain is still workable for quick experiments.
 
 ## To Change the display size (default: 24x2)
 
