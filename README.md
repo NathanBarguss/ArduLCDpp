@@ -1,3 +1,13 @@
+# Getting the Code
+
+Clone the repo with submodules so the `lcd2oled` helper library is available:
+
+```
+git clone --recursive https://github.com/NathanBarguss/ArduLCDpp.git
+# or, if already cloned:
+git submodule update --init --recursive
+```
+
 # ArduLCD
 Arduino based USB interface for HD44780 LCD to lcdproc and equivalent programs.
 
@@ -110,3 +120,8 @@ Find it in "resources", called "wiring_schematic.sch". There is a png version to
 # lcdproc configuration
 
 There is a sample "LCDd.conf" in the resources section
+
+# Changelog (project fork highlights)
+
+- 2025-12-23: Migrated to PlatformIO (`platformio.ini`, `src/main.cpp`) with multi-environment builds (`uno_hd44780`, `mega2560_hd44780`), documented full CLI path usage, and added the lcd2oled submodule under `lib/lcd2oled/`.
+- 2025-12-23: Captured the LCDproc protocol behavior in `docs/lcdproc_display_mapping.md` and formalized backlog templates in `AGENT_STORE/`.
