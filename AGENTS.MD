@@ -56,6 +56,8 @@
 | GND          | 1       | VSS           |
 | Pot wiper    | 3       | VO (contrast) |
 
+> **CRITICAL:** Always tweak the VO contrast trimmer when a “blank” screen is reported. The firmware may be running fine, but without the correct contrast level the welcome banner is invisible. Check contrast before assuming a hardware or code fault.
+
 **Backlight wiring**
 - LCD LED+ (pin 15) → +5 V
 - LCD LED− (pin 16) → BC337 collector

@@ -117,7 +117,29 @@ At the moment you have to edit the code directly, there are two constants you ha
 
 # Schematic
 
-Find it in "resources", called "wiring_schematic.sch". There is a png version too if you just want to view without editing, "wiring_schematic.png"
+Find it in "resources", called "wiring_schematic.sch". There is a png version too if you just want to view without editing, "wiring_schematic.png".
+
+> **Heads-up:** The legacy schematic and wiring PNG still show the pre-2026 pin map. Until we redraw them, use the table below (mirrors `AGENTS.MD`) when wiring new prototypes.
+
+## Current Nano ↔ HD44780 wiring (2026 refresh)
+
+| Signal | LCD Pin | Nano Pin |
+|--------|---------|----------|
+| RS     | 4       | D12      |
+| E      | 6       | D2       |
+| D0     | 7       | D3       |
+| D1     | 8       | D4       |
+| D2     | 9       | D5       |
+| D3     | 10      | D6       |
+| D4     | 11      | D7       |
+| D5     | 12      | D8       |
+| D6     | 13      | D9       |
+| D7     | 14      | D10      |
+| Backlight (PWM) | 16 (through BC337) | D11 |
+
+RW stays tied low, contrast uses the standard pot on VO, and power pins remain 5 V / GND. Document changes or deviations in `AGENTS.MD` so future agents know when hardware or firmware pinouts move.
+
+> **CRITICAL:** If the LCD appears blank after flashing, adjust the contrast trimmer (VO). The panel often shows the new banner only once the pot is set correctly, so always check contrast before chasing firmware bugs.
 
 - R1: Variable resistor 10k
 - Q1: Any NPN transistor really (I used the faithful BC337)
@@ -130,6 +152,6 @@ There is a sample "LCDd.conf" in the resources section
 # Changelog (project fork highlights)
 
 - 2026-01-02: Added a blocking startup banner (`ArduLCD Ready` / `Waiting for host...`) that clears automatically once the host sends serial data so hardware tests have instant visual confirmation.
+- 2026-01-02: Updated the display factory pin map to match the refreshed Nano wiring (E on D2, data bus on D3-D10) and noted that the legacy schematics under `resources/` are now historical until redrawn.
 - 2025-12-23: Migrated to PlatformIO (`platformio.ini`, `src/main.cpp`) with multi-environment builds (`uno_hd44780`, `mega2560_hd44780`), documented full CLI path usage, and added the lcd2oled submodule under `lib/lcd2oled/`.
 - 2025-12-23: Captured the LCDproc protocol behavior in `docs/lcdproc_display_mapping.md` and formalized backlog templates in `AGENT_STORE/`.
-- 2025-12-23: Added a boot-time “ArduLCD Ready / Waiting for host…” banner plus corrected the backlight PWM pin to Nano D11 (matching the documented prototype wiring).
