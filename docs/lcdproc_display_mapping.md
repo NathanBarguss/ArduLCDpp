@@ -9,7 +9,7 @@ ArduLCDpp acts as a USB/serial bridge for LCDproc's `los-panel` driver. This not
 - Code assumes the display actually matches `LCDW`/`LCDH`. LCDproc must therefore be configured with the same Width/Height.
 
 ## Startup Sequence
-1. Configure `LED_PIN` (pin 10) for PWM backlight control and immediately set brightness using `STARTUP_BRIGHTNESS` (8-bit value passed to `analogWrite`).
+1. Configure `LED_PIN` (Nano D11 per wiring doc) for PWM backlight control and immediately set brightness using `STARTUP_BRIGHTNESS` (8-bit value passed to `analogWrite`).
 2. Call `lcd.begin(LCDW, LCDH)` to initialize the controller.
 3. Initialize serial at `BAUDRATE` (default 57600) for los-panel traffic.
 4. Issue `lcd.display()`, `lcd.clear()`, print the `%dx%d Ready` banner via `lcd.write()` and return `lcd.home()`.
@@ -33,7 +33,7 @@ ArduLCDpp acts as a USB/serial bridge for LCDproc's `los-panel` driver. This not
 No `createChar`, `setCursor`, `scrollDisplay*`, or `blink/cursor` helpers are called directly; LCDproc invokes those behaviors through the `command` passthrough.
 
 ## Backlight Behavior
-- `set_backlight(int value)` does a single `analogWrite(LED_PIN, value)` with the byte that followed `0xFD`.
+- `set_backlight(int value)` does a single `analogWrite(LED_PIN, value)` with the byte that followed `0xFD` (Nano D11).
 - LCDproc can therefore dim the panel in 0–255 steps; there is no rate limiting or smoothing.
 - Startup brightness defaults to `STARTUP_BRIGHTNESS` (currently `2`) until LCDproc overrides it.
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#define LED_PIN 10           // PWM pin driving the LCD backlight
+#define LED_PIN 11           // PWM pin driving the LCD backlight (matches Nano wiring)
 #define STARTUP_BRIGHTNESS 2 // Initial duty cycle for the backlight
 #define BAUDRATE 57600       // Serial baud rate used for LCDproc bridge
 #define LCDW 20              // LCD column count

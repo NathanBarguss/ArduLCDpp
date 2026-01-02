@@ -47,7 +47,7 @@ This is the reference implementation (so matches the schematic directly) that I 
 
 After an issue raised about lack of wiring diagram, I decided to whip one up and provide it here. You can find it in the "resources" folder. It was done with gschem (http://www.geda-project.org/), and feel free to make improvements. The diagram includes a transistor, capacitor and wiring between the backlight and pin 10 for dynamic backlight brightness control. This is optional, and can be omitted if you are not interested in that capability.
 
-If you do build in the PWM control circuitry, then you can utilise the old "GPIO" command in pic-an-lcd. This will allow you to vary the brightness of the backlight from 0 (off) to 255 (100%) via a serial command. Otherwise you can fix the brightness of your backlight at compile time by changing the "STARTUP_BRIGHTNESS" define in the code.
+If you do build in the PWM control circuitry (Nano D11 driving a low-side transistor per current prototype), then you can utilise the old "GPIO" command in pic-an-lcd. This will allow you to vary the brightness of the backlight from 0 (off) to 255 (100%) via a serial command. Otherwise you can fix the brightness of your backlight at compile time by changing the "STARTUP_BRIGHTNESS" define in the code.
 
 
 ### 02/05/2016
@@ -129,5 +129,7 @@ There is a sample "LCDd.conf" in the resources section
 
 # Changelog (project fork highlights)
 
+- 2026-01-02: Added a blocking startup banner (`ArduLCD Ready` / `Waiting for host...`) that clears automatically once the host sends serial data so hardware tests have instant visual confirmation.
 - 2025-12-23: Migrated to PlatformIO (`platformio.ini`, `src/main.cpp`) with multi-environment builds (`uno_hd44780`, `mega2560_hd44780`), documented full CLI path usage, and added the lcd2oled submodule under `lib/lcd2oled/`.
 - 2025-12-23: Captured the LCDproc protocol behavior in `docs/lcdproc_display_mapping.md` and formalized backlog templates in `AGENT_STORE/`.
+- 2025-12-23: Added a boot-time “ArduLCD Ready / Waiting for host…” banner plus corrected the backlight PWM pin to Nano D11 (matching the documented prototype wiring).

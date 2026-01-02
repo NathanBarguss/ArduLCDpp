@@ -2,6 +2,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <DisplayConfig.h>
 
@@ -14,6 +15,46 @@
 byte cmd; //will hold our sent command
 
 static IDisplay &display = getDisplay();
+static bool host_active = false;
+static bool startup_screen_visible = false;
+
+static void write_centered_line(const char *text, uint8_t row) {
+	if (!text || row >= LCDH) {
+		return;
+	}
+
+	const size_t len = strlen(text);
+	const size_t slice = len > LCDW ? LCDW : len;
+	char buffer[LCDW + 1];
+	memcpy(buffer, text, slice);
+	buffer[slice] = '\0';
+
+	uint8_t column = 0;
+	if (slice < LCDW) {
+		column = static_cast<uint8_t>((LCDW - slice) / 2);
+	}
+	display.setCursor(column, row);
+	display.write(buffer);
+}
+
+static void display_startup_screen() {
+	startup_screen_visible = true;
+	display.clear();
+	display.home();
+	write_centered_line("ArduLCD Ready", 0);
+	if (LCDH > 1) {
+		write_centered_line("Waiting for host...", 1);
+	}
+}
+
+static void dismiss_startup_screen() {
+	if (!startup_screen_visible) {
+		return;
+	}
+	startup_screen_visible = false;
+	display.clear();
+	display.home();
+}
 
 void setup() {
 	// set up the LCD's number of columns and rows:
@@ -22,11 +63,7 @@ void setup() {
 	// set up serial
 	Serial.begin(BAUDRATE);
 	display.display();
-	display.clear();
-	char welcome[LCDW];
-	sprintf(welcome, "%dx%d Ready", LCDW, LCDH);
-	display.write(welcome);
-	display.home();
+	display_startup_screen();
 
 }
 
@@ -64,6 +101,10 @@ https://lcdproc.sourceforge.net/docs/lcdproc-0-5-6-user.html#los-panel
 
 void loop() {
 	cmd = serial_read();
+	if (!host_active) {
+		host_active = true;
+		dismiss_startup_screen();
+	}
 	switch(cmd) {
 			case 0xFE:
 				display.command(serial_read());
