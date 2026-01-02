@@ -1,0 +1,46 @@
+# OS artifacts
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor and IDE metadata
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# Arduino / PlatformIO build output
+build/
+Build/
+*.ardubuild/
+.pio/
+.pioenvs/
+.piolibdeps/
+.arduino/
+cmake-build-*/
+
+# Compiled objects and binaries
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.eep
+*.srec
+*.lst
+*.map
+*.d
+*.dep
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Python cache (used by some tooling scripts)
+__pycache__/
+*.py[cod]

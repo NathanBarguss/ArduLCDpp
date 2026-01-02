@@ -1,51 +1,69 @@
+#include <Arduino.h>
 #include <avr/io.h>
 #include <util/delay.h>
-#include <Arduino.h>
-// vim: ts=4 ai
+#include <stdio.h>
+#include <string.h>
 
-#define LED_PIN 10		// This is the pin the backlight is controlled by, it must be a PWM pin
-#define STARTUP_BRIGHTNESS 2  // What backlight brightness to start up with (8-bit value)
-#define BAUDRATE 57600 // What baudrate to use for the serial port
-#define LCDW 20  // LCD column length
-#define LCDH 4   // LCD number of rows
+#include <DisplayConfig.h>
 
-// include the LCD library code:
-#include <LiquidCrystal.h>
+#include "display/display_factory.h"
 
-// And this is ths Hardware serial port (which is also bound to the UART->USB chip)
-#include <HardwareSerial.cpp>
-
-// initialize the library with the numbers of the interface pins
-/*	Note, while all the ardu documentation and schematics show 4-bit operation. 
-	It seems the library actually supports both 8-bit and 4-bit mode. It attempts
-	8-bit, then falls back to 4-bit */
-LiquidCrystal lcd(12, 11, 2, 3, 4, 5, 6, 7, 8, 9);
-
+#if DISPLAY_BACKEND != HD44780
+#error "Only the HD44780 backend is implemented; update the firmware before selecting another backend."
+#endif
 
 byte cmd; //will hold our sent command
 
+static IDisplay &display = getDisplay();
+static bool host_active = false;
+static bool startup_screen_visible = false;
 
-void set_backlight(int value) {
-	// We can control the backlight via PWM here, range from 0 to 255 values
-	// 0 is "off", 255 is "on" (max brightness). 
-	analogWrite(LED_PIN, value);
+static void write_centered_line(const char *text, uint8_t row) {
+	if (!text || row >= LCDH) {
+		return;
+	}
+
+	const size_t len = strlen(text);
+	const size_t slice = len > LCDW ? LCDW : len;
+	char buffer[LCDW + 1];
+	memcpy(buffer, text, slice);
+	buffer[slice] = '\0';
+
+	uint8_t column = 0;
+	if (slice < LCDW) {
+		column = static_cast<uint8_t>((LCDW - slice) / 2);
+	}
+	display.setCursor(column, row);
+	display.write(buffer);
+}
+
+static void display_startup_screen() {
+	startup_screen_visible = true;
+	display.clear();
+	display.home();
+	write_centered_line("ArduLCD Ready", 0);
+	if (LCDH > 1) {
+		write_centered_line("Waiting for host...", 1);
+	}
+}
+
+static void dismiss_startup_screen() {
+	if (!startup_screen_visible) {
+		return;
+	}
+	startup_screen_visible = false;
+	display.clear();
+	display.home();
 }
 
 void setup() {
-	pinMode(LED_PIN, OUTPUT);			// set pin to output
-	// We first set the backlight brightness
-	set_backlight(STARTUP_BRIGHTNESS);
-
 	// set up the LCD's number of columns and rows:
-	lcd.begin(LCDW, LCDH);
+	display.begin(LCDW, LCDH);
+	display.setBacklight(STARTUP_BRIGHTNESS);
 	// set up serial
 	Serial.begin(BAUDRATE);
-	lcd.display();
-	lcd.clear();
-	char welcome[LCDW];
-	sprintf(welcome, "%dx%d Ready", LCDW, LCDH);
-	lcd.write(welcome);
-	lcd.home();
+	display.display();
+	display_startup_screen();
 
 }
 
@@ -83,18 +101,21 @@ https://lcdproc.sourceforge.net/docs/lcdproc-0-5-6-user.html#los-panel
 
 void loop() {
 	cmd = serial_read();
+	if (!host_active) {
+		host_active = true;
+		dismiss_startup_screen();
+	}
 	switch(cmd) {
 			case 0xFE:
-				lcd.command(serial_read());
+				display.command(serial_read());
 				break;
 			case 0xFD:
 				// backlight control
-				set_backlight(serial_read());
+				display.setBacklight(serial_read());
 				break;
 			default:
 				// By default we write to the LCD
-				lcd.write(cmd);
+				display.write(cmd);
 				break;
 	}
 }
-

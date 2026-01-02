@@ -1,0 +1,3 @@
+[submodule "lib/lcd2oled"]
+	path = lib/lcd2oled
+	url = https://github.com/NathanBarguss/lcd2oled.git

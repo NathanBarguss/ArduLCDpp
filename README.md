@@ -1,77 +1,111 @@
-# ArduLCD
-Arduino based USB interface for HD44780 LCD to lcdproc and equivalent programs.
+# ArduLCDpp
 
-# Beginnings
+ArduLCDpp is our actively maintained fork of the classic ArduLCD USB bridge. We pair an Arduino Nano with an HD44780 (and future OLED) display, speak lcdproc’s los-panel protocol, and keep the firmware modernized with PlatformIO, automated smoke tests, and a shared backlog under `AGENT_STORE/`.
 
-As time goes on it is harder and harder to connected HD44780 LCDs to computer systems. It used to be that every computer had a parallel port and you just wired it up there.
-However fewer and fewer machines have parallel ports and in some cases the software won't work (e.g. lcdproc on FreeBSD locks up if you try to use the parallel port).
+This README focuses on the current bench-proven hardware, how to build and test the firmware, and how contributors can sync up with the work queue.
 
-So having bought an Arduino and realising how cheap and powerful it was, I thought it would be a good fit for a LCD to USB interface. It is also a relatively simple first project to learn with.
+---
 
-# Design
+## Project Focus
+- **Healthy “power-on” UX:** Every boot shows a deterministic startup banner (`ArduLCD Ready / Waiting for host…`) until the first serial byte arrives.
+- **Modern toolchain:** PlatformIO drives all builds (`src/main.cpp` fed through `src/display/IDisplay.h`), with formal smoke tests documented in `docs/display_smoke_tests.md`.
+- **Transparent backlog:** Specs, bugs, and research live in `AGENT_STORE/`, mirroring a lightweight JIRA so agents and automation stay aligned.
 
-Originally using an implementation of the pic-an-lcd protocol, further investigation of lcdproc's drivers indicated that 99% of the protocol was unused and therefore superfluous. In addition the bits it did use were not the most efficient, so I looked at some of the other protocols supported by the driver and found the "los-panel" (For "LCD on Serial) protocol not only simpler to implement, it had features that would be nice to include, such as backlight control. So version3 switched to this protocol, and after testing and use by myself, it is has been promoted to the stable "master" branch.
+---
 
-As the Arduino is stupidly overpowered for such a simple task, I worked on making it fast. The HD44780 makes use of full 8 bit transfers and serial speed is at 57600 baud. I saw no real improvement running at faster baud rates as LCD display itself cannot refresh that quickly, however it should work if you want to go even faster (just change the BAUDRATE define).
+## Hardware Snapshot (2026 refresh)
+| Signal                | LCD Pin | Nano Pin |
+|-----------------------|---------|----------|
+| RS                    | 4       | D12      |
+| E                     | 6       | D2       |
+| D0 … D7               | 7–14    | D3–D10   |
+| Backlight (PWM)       | 16      | D11 (via BC337 low-side switch) |
+| RW                    | 5       | Tied low |
+| VSS / VDD / VO        | 1 / 2 / 3 | GND / +5 V / contrast pot |
 
+**Contrast is critical:** If the panel looks blank, adjust the VO trimmer before assuming a firmware fault.
 
-# Current status
-### 14/05/2024
+**Schematics:** `resources/wiring_schematic.sch` and `.png` still show the legacy wiring. Use the table above until `FEATURE-20260102-refresh-schematics` lands.
 
-- Version3 has been merged to master. This is now the new stable implementation. It makes use of "los-panel" driver, which is newer, cleaner and better supported.
-- Added example LCDd.conf for FreeBSD
-- Added some photos of my prototype, so you can see ArduLCD in action. The case I made out of some old 3.5" HDD sleds. Does the job fine. 
+---
 
-![Ex1](/resources/20231124_190621.jpg "Example 1")
-![Ex2](/resources/20231124_190616.jpg "Example 2")
+## Repo Layout
+- `src/` – Firmware (`main.cpp`, display abstraction, HD44780 driver)
+- `include/DisplayConfig.h` – Dimensions, baud rate, LED pin, backend selectors
+- `docs/` – Smoke tests, lcdproc mapping, helper guides
+- `AGENT_STORE/` – Backlog (FEATURES, BUGS, RESEARCH + RESOLVED archives)
+- `lib/lcd2oled/` – Submodule used by upcoming OLED backend
+- `resources/` – Schematics, wiring photos, lcdproc sample config
 
-This is the reference implementation (so matches the schematic directly) that I use for testing and development of ArduLCD.
+---
 
-### 22/03/2023
+## Getting Started
+```powershell
+git clone --recursive https://github.com/NathanBarguss/ArduLCDpp.git
+cd ArduLCDpp
+git submodule update --init --recursive
+```
 
-- Added LCDd.conf example for los-panel
-- Switched over from ino (which is no longer under development), to the official Arduino IDE
-- Main development switching to "version3" branch, which will replace picanlcd protocol completely. The old master branch will be renamed "picanlcd", in case anyone specifically wants to use an implementation of that protocol in future.
+We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives under `%USERPROFILE%\.platformio\penv\Scripts\pio.exe`.
 
-### 23/04/2019
+---
 
-After an issue raised about lack of wiring diagram, I decided to whip one up and provide it here. You can find it in the "resources" folder. It was done with gschem (http://www.geda-project.org/), and feel free to make improvements. The diagram includes a transistor, capacitor and wiring between the backlight and pin 10 for dynamic backlight brightness control. This is optional, and can be omitted if you are not interested in that capability.
+## Building & Uploading (PlatformIO)
+| Environment          | Board / Notes                                  |
+|----------------------|-----------------------------------------------|
+| `uno_hd44780`        | Arduino Uno reference build (default)         |
+| `mega2560_hd44780`   | Arduino Mega 2560                             |
+| `nano_hd44780`       | Nano ATmega328P (new bootloader)              |
+| `nano168_hd44780`    | Nano ATmega168 (lab hardware)                 |
 
-If you do build in the PWM control circuitry, then you can utilise the old "GPIO" command in pic-an-lcd. This will allow you to vary the brightness of the backlight from 0 (off) to 255 (100%) via a serial command. Otherwise you can fix the brightness of your backlight at compile time by changing the "STARTUP_BRIGHTNESS" define in the code.
+```powershell
+# Build default environment
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run
 
+# Build/upload Nano168 (bench hardware on COM6)
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_hd44780 --upload-port COM6
+```
 
-### 02/05/2016
+**Serial monitors reset the Nano:** Wait 2–3 seconds after opening a port before sending bytes, and keep the connection open a few seconds so the LCD state is observable. This applies to the manual smoke scripts and any host tooling.
 
-We have a first working version of ArduLCD. Supports HD44780 displays using the pic-an-lcd driver of LCDd (tested on version 0.5.5).
+---
 
-### 02/04/2016
+## Firmware Behavior
+- `display_startup_screen()` centers the banner and holds it until `serial_read()` receives the first byte.
+- Host commands mirror lcdproc’s los-panel driver: `0xFE` for commands, `0xFD` for backlight, raw ASCII otherwise.
+- Backlight PWM currently maps duty cycle directly to `analogWrite(D11, level)`. `FEATURE-20260102-backlight-calibration` tracks improvements so `FD 00/80/FF` give wider visual spread.
 
-Well, I found a user manual for the original PIC-an-LCD: http://www.phanderson.com/PIC-n-LCD/user_manual.html
+---
 
-Turns out the protocol is far more advanced than I expected, allowing for quite a bit of control, higher level LCD functions, and the ability to either output a tone from a speaker, or to fire off 4 GPIO pins.
+## Manual Smoke Tests
+All benches should run the checklist in `docs/display_smoke_tests.md`. Highlights:
 
-In addition, after looking at the lcdproc source code, none of the advanced features are used. lcdproc basically just uses the "raw passthrough" escape characters to talk to the lcd directly.
+1. **T1 – Power-on banner:** Ensure the welcome message appears before host traffic.
+2. **T2–T6 – Core protocol:** Clear/home, address sweep, full-screen fill, CGRAM uploads (remember `FE 80` before writing glyph slots), and PWM backlight control.
+3. **T7 – USB reconnect:** Mark as N/A when USB is also power; requires external supply or automation hook.
+4. **T8 – Stress burst:** 1 KB mixed payload to confirm no hangs or corruption.
 
-# Known bugs
+Capture PASS/FAIL in commits or AGENT_STORE entries so everyone knows which hardware was exercised.
 
-Currently there are no known bugs. It seems to work fine on my test rig, and the first proper implementation on my server seems to work fine (blue 20x4 LCD, LCDd 0.5.5 on FreeBSD). Feel free to give it a test yourselves to see if you come across any problems, and raise a ticket if you come across any issues.
+---
 
-# Building
+## Backlog & Collaboration
+- New specs/bugs/research live under `AGENT_STORE/` using the template naming scheme (`TYPE-YYYYMMDD-slug.md`).
+- Keep tickets updated as you work, and move files into the relevant `RESOLVED/` folder once merged. Example: `FEATURE-20251223-startup-screen` documents the commit IDs that delivered the banner.
+- When in doubt, load `AGENT_STORE/README.md` for workflow and template guidance.
 
-Building is using the standard Arduino IDE, making sure that the libraries needed (e.g. LiquidCrystal) are available.
+Active “next up” items (see `AGENT_STORE/FEATURES/PRIORITY.md`):
+1. Finalize OLED backend layers (command translator, CGRAM shim, geometry clamp).
+2. Add compile-time backend selector + docs.
+3. Deliver automated smoke-test harness so manual serial poking isn’t the bottleneck.
+4. Refresh schematics/backlight calibration per the new hardware reality.
 
-## To Change the display size (default: 24x2)
+---
 
-At the moment you have to edit the code directly, there are two constants you have to change LCDW and LCDH, which govern the LCD dimensions in character width and height respectively
+## Resources
+- `docs/lcdproc_display_mapping.md` – Byte-level mapping between los-panel commands and firmware actions.
+- `docs/display_smoke_tests.md` – Repro scripts for T1–T8 scenarios.
+- `resources/LCDd.conf` – Sample lcdproc configuration targeting this firmware.
+- Photo references live under `resources/` for enclosure ideas.
 
-# Schematic
-
-Find it in "resources", called "wiring_schematic.sch". There is a png version too if you just want to view without editing, "wiring_schematic.png"
-
-- R1: Variable resistor 10k
-- Q1: Any NPN transistor really (I used the faithful BC337)
-- C1: I found that Capacitor value varies, depending on the power draw of the backlight. I'm using a 22uF electrolytic as that is what I had to hand for my test rig.
-
-# lcdproc configuration
-
-There is a sample "LCDd.conf" in the resources section
+Questions? Open an issue/feature ticket in `AGENT_STORE/`, mention which hardware you tested on (Uno, Nano 328, Nano 168), and link relevant smoke-test runs. Contributions that keep the backlog updated and the manual tests green are easiest to review and merge.
