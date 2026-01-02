@@ -8,7 +8,7 @@ This checklist keeps HD44780 and OLED backends protocol-compatible as we add har
 - Host machine needs Python 3 plus `pyserial` (`pip install pyserial`) to replay the command snippets below.
 
 ## Sending Test Sequences
-Use the helper script to emit arbitrary los-panel bytes:
+Use the helper script to emit arbitrary los-panel bytes. **Always wait at least 2–3 seconds after opening the serial port before sending data**—the Nano auto-resets when DTR toggles, and anything sent while the bootloader is running gets dropped. Likewise, keep the port open for a few seconds after sending so humans can verify the display state.
 
 ```powershell
 python - <<'PY'

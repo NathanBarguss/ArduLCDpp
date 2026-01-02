@@ -79,3 +79,4 @@
 **Hardware change protocol**
 - Before running hardware tests or smoke suites, ask the user which board is attached (Uno, Nano 328, Nano 168, etc.) and update the PlatformIO environment accordingly.
 - If the connected board differs from the previous session, note the change in your status update so other agents know which `platformio.ini` env to use and why (e.g., “Nano168 prototype requires `nano168_hd44780` because uploads to 328 targets fail to sync”).
+- Serial consoles toggle DTR, which resets the Nano automatically. Wait 2–3 seconds after opening the port before sending bytes, and leave the port open a few seconds post-write so the LCD stays in the test state long enough for verification.

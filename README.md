@@ -107,6 +107,8 @@ Project configuration lives in `platformio.ini`, which pins the LiquidCrystal de
 
 Display-related PRs should run the checklist in `docs/display_smoke_tests.md`, which captures manual los-panel scenarios (clears, cursor sweeps, custom chars, backlight, USB reconnect) for both HD44780 and future OLED backends. Each row includes the byte sequences to replay over serial plus the expected outcomes.
 
+> **Tip:** Opening a serial port resets the Nano (DTR pulse). Wait 2–3 seconds after the port comes up before sending bytes, and keep the connection open a few seconds after transmitting so the LCD state is observable.
+
 ## Arduino IDE (legacy)
 
 If you still prefer the Arduino IDE, you can open `src/main.cpp` as a sketch (the code is fully compatible) and manually ensure the LiquidCrystal library is installed. PlatformIO will eventually replace these instructions entirely, but the legacy toolchain is still workable for quick experiments.
