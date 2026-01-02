@@ -28,3 +28,6 @@ Test sessions showed the LCD remains blank (or retains stale characters) between
 # Validation Notes
 - Boot the firmware with LCDproc disconnected and confirm the message persists until data is sent manually via serial monitor.
 - 2025-12-23: Implemented centered “ArduLCD Ready / Waiting for host...” banner plus host-activity flag in `src/main.cpp`. Cleared automatically after first serial byte.
+
+# Status
+- 2026-01-02: Verified on Nano168 hardware during T1–T8 smoke tests; README and AGENTS updated accordingly. Resolved via commits `4e1f957` and `77c84e5`.
