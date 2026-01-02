@@ -7,7 +7,7 @@ This README focuses on the current bench-proven hardware, how to build and test 
 ---
 
 ## Project Focus
-- **Healthy “power-on” UX:** Every boot shows a deterministic startup banner (`ArduLCD Ready / Waiting for host…`) until the first serial byte arrives.
+- **Healthy "power-on" UX:** Every boot shows a deterministic startup banner (`ArduLCDpp Ready / Waiting for host... / bit.ly/4plthUv*`) until the first serial byte arrives. *Third line appears on displays with three or more rows.*
 - **Modern toolchain:** PlatformIO drives all builds (`src/main.cpp` fed through `src/display/IDisplay.h`), with formal smoke tests documented in `docs/display_smoke_tests.md`.
 - **Transparent backlog:** Specs, bugs, and research live in `AGENT_STORE/`, mirroring a lightweight JIRA so agents and automation stay aligned.
 

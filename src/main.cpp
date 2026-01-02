@@ -41,9 +41,12 @@ static void display_startup_screen() {
 	startup_screen_visible = true;
 	display.clear();
 	display.home();
-	write_centered_line("ArduLCD Ready", 0);
+	write_centered_line("ArduLCDpp Ready", 0);
 	if (LCDH > 1) {
 		write_centered_line("Waiting for host...", 1);
+	}
+	if (LCDH > 2) {
+		write_centered_line("bit.ly/4plthUv", 2);
 	}
 }
 
