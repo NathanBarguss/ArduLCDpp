@@ -25,3 +25,4 @@ With multiple display targets, manual spot checks are easy to forget. A repeatab
 
 # Validation Notes
 - Run through the checklist once on each backend and note any timing issues or missing instrumentation.
+- 2025-12-23: Authored `docs/display_smoke_tests.md` with byte-level procedures for T1–T8; OLED column remains blocked until that backend lands.

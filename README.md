@@ -103,6 +103,10 @@ To target other boards or add backends (e.g., OLED), duplicate one of the enviro
 
 Project configuration lives in `platformio.ini`, which pins the LiquidCrystal dependency and default serial/monitor speed so builds remain reproducible.
 
+## Smoke Tests
+
+Display-related PRs should run the checklist in `docs/display_smoke_tests.md`, which captures manual los-panel scenarios (clears, cursor sweeps, custom chars, backlight, USB reconnect) for both HD44780 and future OLED backends. Each row includes the byte sequences to replay over serial plus the expected outcomes.
+
 ## Arduino IDE (legacy)
 
 If you still prefer the Arduino IDE, you can open `src/main.cpp` as a sketch (the code is fully compatible) and manually ensure the LiquidCrystal library is installed. PlatformIO will eventually replace these instructions entirely, but the legacy toolchain is still workable for quick experiments.
