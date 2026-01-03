@@ -28,6 +28,8 @@ After adding the initial “ArduLCD Ready / Waiting for host…” banner, we wa
 # Validation Notes
 - Capture photos or logs from both Uno and Mega builds demonstrating the new banner prior to host traffic.
 - 2026-01-02: Verified `pio run` (default env) completes and manual inspection confirms the centered three-line banner appears in `src/main.cpp`. Photo capture from Uno/Mega benches still pending.
+- 2026-01-02: Ran smoke tests T1–T7 on Nano168 (`nano168_hd44780`, COM6). Observed correct banner, cursor/home, fill, custom glyphs, backlight PWM, and reconnect behavior; no photos required.
 
 # Status
 - 2026-01-02: Startup banner updated to `ArduLCDpp Ready / Waiting for host... / bit.ly/4plthUv` plus README + smoke-test docs refreshed on branch `feature/power-on-message`; ready for merge after bench photos.
+- 2026-01-02: Hardware validation complete (Nano168 bench); ticket fully closed.
