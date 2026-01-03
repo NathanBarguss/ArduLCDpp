@@ -27,3 +27,7 @@ ArduLCDpp currently targets HD44780-compatible character LCDs via LiquidCrystal 
 # Validation Notes
 - Run baseline LCDproc screens against an HD44780 module to ensure there are no regressions in blinking, cursor placement, or custom characters.
 - 2025-12-23: `IDisplay`/`HD44780Display` landed under `src/display/` with `display_factory.cpp` selecting the default backend; `rg "LiquidCrystal" src` now reports only those files. Hardware validation pending.
+- 2026-01-03: Re-ran `rg "LiquidCrystal" src` (only hits `src/display/`), confirmed `pio run` (uno_hd44780) succeeds after the refactor. Pending OLED hardware work will add additional backend validation when available.
+
+# Status
+- 2026-01-03: Interface + HD44780 backend refactor complete and archived; awaiting future hardware notes once OLED backend is exercised.
