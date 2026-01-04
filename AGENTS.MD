@@ -33,7 +33,7 @@
   - `nano168_hd44780` for ATmega168 units—use this when uploads only succeed after switching boards in PlatformIO.
 - **HD44780 character LCD:** 8-bit parallel, RW tied low, backlight driven through a BC337 low-side transistor from Arduino D11 (PWM). See pin map below.
 - **OLED fallback:** SSD1306 I²C module (128×32 tested, 128×64 expected). Connected via I²C plus optional reset.
-- **Display selection:** Only one display is active per firmware build (compile-time flag); both panels can remain physically attached.
+- **Display modes:** Firmware supports LCD-only, OLED-only, and the new dual-display parity build that mirrors every command to both panels so UX can compare them live. Keep both panels wired during bench runs, and update any backlog entries created before 2026-01-04 if they still assume "only one display per build."
 - **Power/decoupling:** LCD logic runs off Nano 5 V pin with 100 nF decoupling near the module and an optional 10 µF bulk capacitor. OLED power depends on the breakout (5 V or 3.3 V).
 - **Design assumptions:** The HD44780 busy flag is never read (write-only workflow), and USB provides the development power source.
 

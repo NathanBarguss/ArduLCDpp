@@ -10,6 +10,7 @@ This README focuses on the current bench-proven hardware, how to build and test 
 - **Healthy "power-on" UX:** Every boot shows a deterministic startup banner (`ArduLCDpp Ready / Waiting for host... / bit.ly/4plthUv*`) until the first serial byte arrives. *Third line appears on displays with three or more rows.*
 - **Modern toolchain:** PlatformIO drives all builds (`src/main.cpp` fed through `src/display/IDisplay.h`), with formal smoke tests documented in `docs/display_smoke_tests.md`.
 - **Transparent backlog:** Specs, bugs, and research live in `AGENT_STORE/`, mirroring a lightweight JIRA so agents and automation stay aligned.
+- **Dual-display parity option:** Beyond the LCD-only/OLED-only binaries, we now support a dual build that drives both panels simultaneously so UX can compare rendering without reflashing; update older specs if they still insist on mutually exclusive builds.
 
 ---
 
@@ -75,6 +76,13 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 - Host commands mirror lcdproc’s los-panel driver: `0xFE` for commands, `0xFD` for backlight, raw ASCII otherwise.
 - Backlight PWM currently maps duty cycle directly to `analogWrite(D11, level)`. `FEATURE-20260102-backlight-calibration` tracks improvements so `FD 00/80/FF` give wider visual spread.
 
+## Display Modes
+- `DISPLAY_BACKEND=HD44780` remains the default LCD-only build for production installs.
+- `DISPLAY_BACKEND=OLED` targets the SSD1306 bridge once the OLED backend tickets close.
+- `DISPLAY_BACKEND=DUAL` (FEATURE-20260104-dual-display-parity) mirrors every `IDisplay` call to both panels so UX/QA can compare glyphs live; keep both displays wired and confirm power budget before long bench sessions.
+
+Any feature documentation authored before 2026-01-04 assumed mutually exclusive builds—update those tickets when you touch them so they explicitly account for the dual option.
+
 ---
 
 ## Manual Smoke Tests
@@ -91,14 +99,16 @@ Capture PASS/FAIL in commits or AGENT_STORE entries so everyone knows which hard
 
 ## Backlog & Collaboration
 - New specs/bugs/research live under `AGENT_STORE/` using the template naming scheme (`TYPE-YYYYMMDD-slug.md`).
+- When editing feature specs created before 2026-01-04, revise any “single display only” assumptions so the new dual-mode plan stays consistent throughout the backlog.
 - Keep tickets updated as you work, and move files into the relevant `RESOLVED/` folder once merged. Example: `FEATURE-20251223-startup-screen` documents the commit IDs that delivered the banner.
 - When in doubt, load `AGENT_STORE/README.md` for workflow and template guidance.
 
 Active “next up” items (see `AGENT_STORE/FEATURES/PRIORITY.md`):
 1. Finalize OLED backend layers (command translator, CGRAM shim, geometry clamp).
-2. Add compile-time backend selector + docs.
-3. Deliver automated smoke-test harness so manual serial poking isn’t the bottleneck.
-4. Refresh schematics/backlight calibration per the new hardware reality.
+2. Land the dual-display parity build (FEATURE-20260104-dual-display-parity) once both concrete backends are solid.
+3. Extend the compile-time selector + docs so LCD, OLED, and dual builds are all first-class (ticket updates required if they still assume mutually exclusive outputs).
+4. Deliver automated smoke-test harness so manual serial poking isn’t the bottleneck.
+5. Refresh schematics/backlight calibration per the new hardware reality.
 
 ---
 
