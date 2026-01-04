@@ -28,3 +28,4 @@ LiquidCrystal exposes `command(byte)`; lcd2oled does not. Today ArduLCDpp forwar
 # Validation Notes
 - Capture serial traces while running LCDproc with both backends and compare visual output.
 - Add tracing (guarded by `#ifdef`) to confirm rarely used opcodes are either supported or safely ignored.
+- 2026-01-04 dependency note: Dual-display builds now mirror all high-level `IDisplay` calls, but OLED still ignores `0xFE` command bytes. Translating those opcodes (plus CGRAM writes from FEATURE-20251223-cgram-shim) is the remaining blocker for full parity. Use the new `ENABLE_SERIAL_DEBUG` logging hooks if more instrumentation is needed while implementing the translator.

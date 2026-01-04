@@ -57,7 +57,9 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 | `uno_hd44780`        | Arduino Uno reference build (default)         |
 | `mega2560_hd44780`   | Arduino Mega 2560                             |
 | `nano_hd44780`       | Nano ATmega328P (new bootloader)              |
-| `nano168_hd44780`    | Nano ATmega168 (lab hardware)                 |
+| `nano168_hd44780`    | Nano ATmega168 (lab hardware, LCD only)       |
+| `nano168_oled`       | Nano ATmega168 driving the SSD1306 OLED       |
+| `nano168_dual`       | Nano ATmega168 mirroring LCD + OLED           |
 
 ```powershell
 # Build default environment
@@ -65,6 +67,12 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 
 # Build/upload Nano168 (bench hardware on COM6)
 & $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_hd44780 --upload-port COM6
+
+# OLED-only bench image
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_oled --upload-port COM6
+
+# Dual-display parity build (mirrors LCD + OLED)
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_dual --upload-port COM6
 ```
 
 **Serial monitors reset the Nano:** Wait 2–3 seconds after opening a port before sending bytes, and keep the connection open a few seconds so the LCD state is observable. This applies to the manual smoke scripts and any host tooling.

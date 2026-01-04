@@ -8,8 +8,14 @@
 
 #include "display/display_factory.h"
 
-#if DISPLAY_BACKEND != HD44780
-#error "Only the HD44780 backend is implemented; update the firmware before selecting another backend."
+#if DISPLAY_BACKEND != HD44780 && DISPLAY_BACKEND != OLED && DISPLAY_BACKEND != DUAL
+#error "Unknown DISPLAY_BACKEND selected; update the firmware or config."
+#endif
+
+#if ENABLE_SERIAL_DEBUG
+#define DEBUG_LOG(msg) Serial.println(F(msg))
+#else
+#define DEBUG_LOG(msg) do {} while (0)
 #endif
 
 byte cmd; //will hold our sent command
@@ -60,13 +66,18 @@ static void dismiss_startup_screen() {
 }
 
 void setup() {
-	// set up the LCD's number of columns and rows:
-	display.begin(LCDW, LCDH);
-	display.setBacklight(STARTUP_BRIGHTNESS);
-	// set up serial
 	Serial.begin(BAUDRATE);
+	DEBUG_LOG("setup: serial online");
+	// set up the LCD's number of columns and rows:
+	DEBUG_LOG("setup: display.begin");
+	display.begin(LCDW, LCDH);
+	DEBUG_LOG("setup: display.begin complete");
+	display.setBacklight(STARTUP_BRIGHTNESS);
+	DEBUG_LOG("setup: backlight set");
 	display.display();
+	DEBUG_LOG("setup: display() called");
 	display_startup_screen();
+	DEBUG_LOG("setup: startup banner drawn");
 
 }
 

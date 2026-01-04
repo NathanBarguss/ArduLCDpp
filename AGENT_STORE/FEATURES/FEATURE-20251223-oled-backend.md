@@ -28,3 +28,4 @@ ArduLCDpp must stay protocol-compatible with LCDproc/los-panel while expanding t
 # Validation Notes
 - Connect an OLED module and verify the banner prints without glitches.
 - Sanity check I2C traffic with a logic analyzer if issues arise.
+- 2026-01-04: `OLEDDisplay` boots cleanly on the bench (hello self-test visible, startup banner renders when the host is idle). Remaining gap is FEATURE-20251223-oled-command-translator, which blocks lcdproc parity because `command()` is still a no-op on the OLED backend. Keep this ticket open until the translator (and the follow-on CGRAM shim) are integrated so host traffic drives both panels equivalently.
