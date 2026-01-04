@@ -82,6 +82,7 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 ## Firmware Behavior
 - `display_startup_screen()` centers the banner and holds it until `serial_read()` receives the first byte.
 - Host commands mirror lcdproc’s los-panel driver: `0xFE` for commands, `0xFD` for backlight, raw ASCII otherwise.
+- OLED and dual builds route `0xFE` traffic through an HD44780 command translator so DDRAM cursor moves and CGRAM uploads behave like the glass-panel baseline.
 - Backlight PWM currently maps duty cycle directly to `analogWrite(D11, level)`. `FEATURE-20260102-backlight-calibration` tracks improvements so `FD 00/80/FF` give wider visual spread.
 
 ## Display Modes

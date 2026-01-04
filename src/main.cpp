@@ -8,6 +8,10 @@
 
 #include "display/display_factory.h"
 
+#if DISPLAY_BACKEND != HD44780
+#include "display/Hd44780CommandTranslator.h"
+#endif
+
 #if DISPLAY_BACKEND != HD44780 && DISPLAY_BACKEND != OLED && DISPLAY_BACKEND != DUAL
 #error "Unknown DISPLAY_BACKEND selected; update the firmware or config."
 #endif
@@ -23,6 +27,10 @@ byte cmd; //will hold our sent command
 static IDisplay &display = getDisplay();
 static bool host_active = false;
 static bool startup_screen_visible = false;
+
+#if DISPLAY_BACKEND != HD44780
+static Hd44780CommandTranslator command_translator(display);
+#endif
 
 static void write_centered_line(const char *text, uint8_t row) {
 	if (!text || row >= LCDH) {
@@ -76,6 +84,9 @@ void setup() {
 	DEBUG_LOG("setup: backlight set");
 	display.display();
 	DEBUG_LOG("setup: display() called");
+#if DISPLAY_BACKEND != HD44780
+	command_translator.reset();
+#endif
 	display_startup_screen();
 	DEBUG_LOG("setup: startup banner drawn");
 
@@ -121,7 +132,11 @@ void loop() {
 	}
 	switch(cmd) {
 			case 0xFE:
+#if DISPLAY_BACKEND == HD44780
 				display.command(serial_read());
+#else
+				command_translator.handleCommand(static_cast<uint8_t>(serial_read()));
+#endif
 				break;
 			case 0xFD:
 				// backlight control
@@ -129,7 +144,13 @@ void loop() {
 				break;
 			default:
 				// By default we write to the LCD
+#if DISPLAY_BACKEND == HD44780
 				display.write(cmd);
+#else
+				if (!command_translator.handleData(cmd)) {
+					display.write(cmd);
+				}
+#endif
 				break;
 	}
 }
