@@ -3,8 +3,10 @@
 #include <Arduino.h>
 #include <DisplayConfig.h>
 
-#if ENABLE_SERIAL_DEBUG
-#define DUAL_DEBUG(msg) Serial.println(F(msg))
+#include "SerialDebug.h"
+
+#if ENABLE_DUAL_DEBUG
+#define DUAL_DEBUG(msg) SerialDebug::line(true, F(msg))
 #else
 #define DUAL_DEBUG(msg) do {} while (0)
 #endif

@@ -10,6 +10,10 @@
 #define ENABLE_SERIAL_DEBUG 0
 #endif
 
+#ifndef ENABLE_DUAL_DEBUG
+#define ENABLE_DUAL_DEBUG 0
+#endif
+
 #ifndef OLED_RESET_PIN
 #define OLED_RESET_PIN 0xFF
 #endif

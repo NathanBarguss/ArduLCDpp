@@ -6,6 +6,7 @@
 
 #include <DisplayConfig.h>
 
+#include "SerialDebug.h"
 #include "display/display_factory.h"
 
 #if DISPLAY_BACKEND != HD44780
@@ -16,11 +17,7 @@
 #error "Unknown DISPLAY_BACKEND selected; update the firmware or config."
 #endif
 
-#if ENABLE_SERIAL_DEBUG
-#define DEBUG_LOG(msg) Serial.println(F(msg))
-#else
-#define DEBUG_LOG(msg) do {} while (0)
-#endif
+#define DEBUG_LOG(msg) SerialDebug::line(ENABLE_SERIAL_DEBUG, F(msg))
 
 byte cmd; //will hold our sent command
 
@@ -30,6 +27,36 @@ static bool startup_screen_visible = false;
 
 #if DISPLAY_BACKEND != HD44780
 static Hd44780CommandTranslator command_translator(display);
+#endif
+
+#if ENABLE_SERIAL_DEBUG
+static int16_t free_sram() {
+	extern char __heap_start;
+	extern char *__brkval;
+	char stack_top;
+	char *heap_end = __brkval ? __brkval : &__heap_start;
+	return static_cast<int16_t>(&stack_top - heap_end);
+}
+
+static uint32_t compute_i2c_clock_hz() {
+	const uint8_t twps = static_cast<uint8_t>(TWSR & ((1 << TWPS0) | (1 << TWPS1)));
+	uint16_t prescaler = 1;
+	if (twps == 1) {
+		prescaler = 4;
+	} else if (twps == 2) {
+		prescaler = 16;
+	} else if (twps == 3) {
+		prescaler = 64;
+	}
+	const uint32_t denominator = static_cast<uint32_t>(16UL + (2UL * TWBR * prescaler));
+	return denominator == 0 ? 0 : static_cast<uint32_t>(F_CPU / denominator);
+}
+
+static void log_runtime_constraints(uint32_t display_begin_us) {
+	SerialDebug::kv(true, F("display.begin.us"), display_begin_us);
+	SerialDebug::kv(true, F("free_sram.bytes"), free_sram());
+	SerialDebug::kv(true, F("i2c.clock.hz"), compute_i2c_clock_hz());
+}
 #endif
 
 static void write_centered_line(const char *text, uint8_t row) {
@@ -78,8 +105,17 @@ void setup() {
 	DEBUG_LOG("setup: serial online");
 	// set up the LCD's number of columns and rows:
 	DEBUG_LOG("setup: display.begin");
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t display_begin_start = micros();
+#endif
 	display.begin(LCDW, LCDH);
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t display_begin_duration = micros() - display_begin_start;
+#endif
 	DEBUG_LOG("setup: display.begin complete");
+#if ENABLE_SERIAL_DEBUG
+	log_runtime_constraints(display_begin_duration);
+#endif
 	display.setBacklight(STARTUP_BRIGHTNESS);
 	DEBUG_LOG("setup: backlight set");
 	display.display();
