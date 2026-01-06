@@ -11,14 +11,27 @@
 #define DUAL_DEBUG(msg) do {} while (0)
 #endif
 
+#if ENABLE_SERIAL_DEBUG
+constexpr uint16_t kSecondarySlowThresholdUs = 150;
+#endif
+
 DualDisplay::DualDisplay(IDisplay &primary, IDisplay &secondary)
     : primary_(primary), secondary_(secondary) {}
 
 void DualDisplay::begin(uint8_t width, uint8_t height) {
+	Serial.print(F("ENABLE_DUAL_DEBUG:"));
+	Serial.println(ENABLE_DUAL_DEBUG);
+
 	DUAL_DEBUG("DualDisplay: begin primary");
 	primary_.begin(width, height);
+	
 	DUAL_DEBUG("DualDisplay: begin secondary");
+	Serial.println(F("dual: begin secondary start"));
+
 	secondary_.begin(width, height);
+
+	Serial.println(F("dual: begin secondary done"));
+
 	DUAL_DEBUG("DualDisplay: begin complete");
 }
 
@@ -46,7 +59,23 @@ void DualDisplay::setCursor(uint8_t column, uint8_t row) {
 size_t DualDisplay::write(uint8_t value) {
 	DUAL_DEBUG("DualDisplay: write");
 	const size_t written = primary_.write(value);
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t secondary_start = micros();
+#endif
 	secondary_.write(value);
+#if ENABLE_SERIAL_DEBUG
+	if (SerialDebug::isRuntimeEnabled()) {
+		const uint32_t duration = micros() - secondary_start;
+		SerialDebug::printPrefix();
+		Serial.print(F("dual.write.oled_us="));
+		Serial.println(duration);
+		if (duration >= kSecondarySlowThresholdUs) {
+			SerialDebug::printPrefix();
+			Serial.print(F("dual.write.slow_us="));
+			Serial.println(duration);
+		}
+	}
+#endif
 	return written;
 }
 

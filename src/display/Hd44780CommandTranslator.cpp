@@ -3,6 +3,8 @@
 #include <DisplayConfig.h>
 #include <string.h>
 
+#include "SerialDebug.h"
+
 Hd44780CommandTranslator::Hd44780CommandTranslator(IDisplay &display)
     : display_(display) {
 	reset();
@@ -65,9 +67,29 @@ bool Hd44780CommandTranslator::handleData(uint8_t value) {
 		return true;
 	}
 
+#if ENABLE_SERIAL_DEBUG
+	const uint8_t current_row = logical_row_;
+	const uint8_t current_column = logical_column_;
+	const uint8_t current_ddram = ddram_address_;
+#endif
 	display_.setCursor(logical_column_, logical_row_);
 	display_.write(value);
 	advanceDdramAddress();
+#if ENABLE_SERIAL_DEBUG
+	if (SerialDebug::isRuntimeEnabled()) {
+		const int16_t delta = static_cast<int16_t>(static_cast<int8_t>(ddram_address_) -
+		                                           static_cast<int8_t>(current_ddram));
+		SerialDebug::printPrefix();
+		Serial.print(F("translator.ddram addr=0x"));
+		Serial.print(current_ddram, HEX);
+		Serial.print(F(" row="));
+		Serial.print(current_row);
+		Serial.print(F(" col="));
+		Serial.print(current_column);
+		Serial.print(F(" delta="));
+		Serial.println(delta);
+	}
+#endif
 	return true;
 }
 

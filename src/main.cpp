@@ -17,7 +17,11 @@
 #error "Unknown DISPLAY_BACKEND selected; update the firmware or config."
 #endif
 
-#define DEBUG_LOG(msg) SerialDebug::line(ENABLE_SERIAL_DEBUG, F(msg))
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
+#define DEBUG_LOG(msg) SerialDebug::line(true, F(msg))
+#else
+#define DEBUG_LOG(msg) do {} while (0)
+#endif
 
 byte cmd; //will hold our sent command
 
@@ -30,6 +34,9 @@ static Hd44780CommandTranslator command_translator(display);
 #endif
 
 #if ENABLE_SERIAL_DEBUG
+static constexpr uint16_t SERIAL_WAIT_LOG_THRESHOLD_US = 500;
+static constexpr uint8_t SERIAL_BACKLOG_LOW_WATER = 8;
+
 static int16_t free_sram() {
 	extern char __heap_start;
 	extern char *__brkval;
@@ -52,10 +59,30 @@ static uint32_t compute_i2c_clock_hz() {
 	return denominator == 0 ? 0 : static_cast<uint32_t>(F_CPU / denominator);
 }
 
-static void log_runtime_constraints(uint32_t display_begin_us) {
-	SerialDebug::kv(true, F("display.begin.us"), display_begin_us);
-	SerialDebug::kv(true, F("free_sram.bytes"), free_sram());
-	SerialDebug::kv(true, F("i2c.clock.hz"), compute_i2c_clock_hz());
+struct BootDiagnostics {
+	uint32_t display_begin_us;
+	int16_t free_sram_bytes;
+	uint32_t i2c_clock_hz;
+	bool captured;
+};
+
+static BootDiagnostics boot_diagnostics = {0, 0, 0, false};
+
+static void capture_boot_diagnostics(uint32_t display_begin_us) {
+	boot_diagnostics.display_begin_us = display_begin_us;
+	boot_diagnostics.free_sram_bytes = free_sram();
+	boot_diagnostics.i2c_clock_hz = compute_i2c_clock_hz();
+	boot_diagnostics.captured = true;
+}
+
+static void emit_boot_diagnostics() {
+	if (!boot_diagnostics.captured) {
+		return;
+	}
+	SerialDebug::kv(true, F("display.begin.us"), boot_diagnostics.display_begin_us);
+	SerialDebug::kv(true, F("free_sram.bytes"), boot_diagnostics.free_sram_bytes);
+	SerialDebug::kv(true, F("i2c.clock.hz"), boot_diagnostics.i2c_clock_hz);
+	boot_diagnostics.captured = false;
 }
 #endif
 
@@ -102,6 +129,17 @@ static void dismiss_startup_screen() {
 
 void setup() {
 	Serial.begin(BAUDRATE);
+
+	Serial.print(F("ENABLE_SERIAL_DEBUG:"));
+	Serial.println(ENABLE_SERIAL_DEBUG);
+
+	Serial.print(F("ENABLE_VERBOSE_DEBUG_LOGS:"));
+	Serial.println(ENABLE_VERBOSE_DEBUG_LOGS);	
+
+#if ENABLE_SERIAL_DEBUG
+	SerialDebug::setRuntimeEnabled(true);
+	Serial.println(F("debug: instrumentation armed"));
+#endif
 	DEBUG_LOG("setup: serial online");
 	// set up the LCD's number of columns and rows:
 	DEBUG_LOG("setup: display.begin");
@@ -114,7 +152,7 @@ void setup() {
 #endif
 	DEBUG_LOG("setup: display.begin complete");
 #if ENABLE_SERIAL_DEBUG
-	log_runtime_constraints(display_begin_duration);
+	capture_boot_diagnostics(display_begin_duration);
 #endif
 	display.setBacklight(STARTUP_BRIGHTNESS);
 	DEBUG_LOG("setup: backlight set");
@@ -130,11 +168,34 @@ void setup() {
 
 int serial_read() {
 	int result = -1;
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t wait_start = micros();
+	uint16_t spins = 0;
+#endif
 	while(result == -1) {
 		if(Serial.available() > 0) {
 			result = Serial.read();
 		}
+#if ENABLE_SERIAL_DEBUG
+		else {
+			++spins;
+		}
+#endif
 	}
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t wait_us = micros() - wait_start;
+	const int backlog = Serial.available();
+	if (SerialDebug::isRuntimeEnabled() &&
+	    (wait_us > SERIAL_WAIT_LOG_THRESHOLD_US || backlog < SERIAL_BACKLOG_LOW_WATER)) {
+		SerialDebug::printPrefix();
+		Serial.print(F("serial.byte wait_us="));
+		Serial.print(wait_us);
+		Serial.print(F(" spins="));
+		Serial.print(spins);
+		Serial.print(F(" backlog="));
+		Serial.println(backlog);
+	}
+#endif
 	return result;
 }
 
@@ -164,6 +225,15 @@ void loop() {
 	cmd = serial_read();
 	if (!host_active) {
 		host_active = true;
+#if ENABLE_SERIAL_DEBUG
+		SerialDebug::setRuntimeEnabled(true);
+		Serial.println(F("raw: host active"));
+		emit_boot_diagnostics();
+		SerialDebug::line(true, F("serial_debug: host active"));
+		Serial.flush();
+#else
+		SerialDebug::setRuntimeEnabled(true);
+#endif
 		dismiss_startup_screen();
 	}
 	switch(cmd) {

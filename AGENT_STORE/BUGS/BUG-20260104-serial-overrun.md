@@ -30,6 +30,10 @@ Translator-driven dual/OLED builds miss the last row during bulk writes because 
 - T8 (1 KB stress mix) replayed the same session: after the initial splash the LCD/OLED stalled during the burst—per bench observation the tail of the payload never appeared until the host resent with pacing, matching the original failure description.
 - Artifacts: command snippets live in this session log; photos/serial captures pending UX upload so we can archive them alongside the ticket.
 
+# 2026-01-05 Instrumentation Notes
+- Added a reusable `SerialDebug` shim plus runtime gating so verbose traces only emit once the host starts streaming (`SerialDebug::setRuntimeEnabled` toggled when `host_active` flips true). DualDisplay, translator, and `serial_read()` now log timing/cursor/backlog data whenever `ENABLE_SERIAL_DEBUG=1`.
+- Current COM6 capture scripts show no output yet—the firmware now holds traces until the host is active, but our local reader still needs to coexist with the los-panel sender. Next action is to keep the monitor attached while replaying T4/T8 from the bench so we can harvest the new logs.
+
 # Runtime Constraints (captured 2026-01-05 with `ENABLE_SERIAL_DEBUG=1`)
 - `display.begin()` total latency: ~200,460 µs on the Nano168 dual build (includes HD44780 + OLED init).
 - Free SRAM reported immediately after init: 145 bytes remaining, so any buffering solution must stay well under this delta or reclaim memory elsewhere.

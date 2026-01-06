@@ -10,6 +10,10 @@
 #define ENABLE_SERIAL_DEBUG 0
 #endif
 
+#ifndef ENABLE_VERBOSE_DEBUG_LOGS
+#define ENABLE_VERBOSE_DEBUG_LOGS 0
+#endif
+
 #ifndef ENABLE_DUAL_DEBUG
 #define ENABLE_DUAL_DEBUG 0
 #endif

@@ -4,10 +4,13 @@ OLEDDisplay::OLEDDisplay(uint8_t resetPin, uint8_t i2cAddress)
     : oled_(resetPin), i2cAddress_(i2cAddress) {}
 
 void OLEDDisplay::begin(uint8_t width, uint8_t height) {
+	Serial.println(F("oled: begin entry"));
 	oled_.SetAddress(i2cAddress_);
+	Serial.println(F("oled: address set"));
 	oled_.begin(width, height);
+	Serial.println(F("oled: driver begin done"));
 	oled_.home();
-	oled_.write("hello");
+	Serial.println(F("oled: home done"));
 }
 
 void OLEDDisplay::clear() {
