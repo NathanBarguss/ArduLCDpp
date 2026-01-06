@@ -18,6 +18,10 @@
 #define ENABLE_DUAL_DEBUG 0
 #endif
 
+#ifndef ENABLE_LCD2OLED_DEBUG
+#define ENABLE_LCD2OLED_DEBUG 0
+#endif
+
 #ifndef OLED_RESET_PIN
 #define OLED_RESET_PIN 0xFF
 #endif
