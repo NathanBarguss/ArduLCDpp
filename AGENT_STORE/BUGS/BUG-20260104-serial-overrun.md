@@ -34,6 +34,18 @@ Translator-driven dual/OLED builds miss the last row during bulk writes because 
 - Added a reusable `SerialDebug` shim plus runtime gating so verbose traces only emit once the host starts streaming (`SerialDebug::setRuntimeEnabled` toggled when `host_active` flips true). DualDisplay, translator, and `serial_read()` now log timing/cursor/backlog data whenever `ENABLE_SERIAL_DEBUG=1`.
 - Current COM6 capture scripts show no output yet—the firmware now holds traces until the host is active, but our local reader still needs to coexist with the los-panel sender. Next action is to keep the monitor attached while replaying T4/T8 from the bench so we can harvest the new logs.
 
+# 2026-01-06 Telemetry Capture (COM6, Nano168 dual)
+- `scripts/t4_with_logs.py` now accepts `--test {t4,t8}` so we can replay both the 80-byte fill and the 1 KB stress burst while the monitor stays connected. The `nano168_dual_serial` env disables `ENABLE_LCD2OLED_DEBUG` by default to avoid init spam in the logs.
+- **T4:** Every mirrored write spent ~2.04–2.06 ms inside `DualDisplay::write`, so an 80-byte fill monopolizes the MCU for ~160 ms. UART metrics logged `serial.byte wait_us=150360` with backlog dropping to 0 before `raw: host active`, proving the OLED mirror starves `serial_read()`.
+- **T8:** The 1 KB burst produced the same 2.05 ms OLED latency and repeated backlog collapses (backlog 7→0) while DDRAM deltas stayed sequential. `dual.write.slow_us` fired on nearly every byte—translator is fine; the OLED path is the bottleneck.
+- Both runs reported ~139 bytes free SRAM after `display.begin()` and `i2c.clock.hz=100000`, so the mitigation must fit within ≈100 bytes of headroom or reclaim memory elsewhere.
+
+# Mitigation Draft
+1. **OLED mirror queue (target ~64 entries).** Keep LCD writes synchronous but push `(addr,value,is_cmd)` tuples for the OLED into a ring buffer. Drain during idle periods (when `Serial.available()==0` or on a timer), so los-panel bursts can continue while the OLED catches up. Budget: ~3 bytes/entry = 192 bytes; reclaim SRAM by shrinking boot log strings or reusing the static OLED text buffer to store queue backing storage when debug is on.
+2. **Backpressure once queue nears full.** If the OLED queue exceeds a high-water mark, momentarily pause LOS consumption (spin until one entry drains) and log `dual.queue.backpressure` so we know how often this happens.
+3. **Serial pacing metrics.** Extend `serial_read()` to emit queue depth snapshots and max wait time per burst so we can prove the buffer is large enough before merging.
+4. **Bench validation.** After implementing the queue, rerun `scripts/t4_with_logs.py --test t4` and `--test t8` with COM6 attached. Success criteria: OLED writes no longer exceed ~200 µs (because we only drain a few per idle window), UART backlog never hits zero during T4, and serial wait times stay under 1 ms even during T8.
+
 # Runtime Constraints (captured 2026-01-05 with `ENABLE_SERIAL_DEBUG=1`)
 - `display.begin()` total latency: ~200,460 µs on the Nano168 dual build (includes HD44780 + OLED init).
 - Free SRAM reported immediately after init: 145 bytes remaining, so any buffering solution must stay well under this delta or reclaim memory elsewhere.
