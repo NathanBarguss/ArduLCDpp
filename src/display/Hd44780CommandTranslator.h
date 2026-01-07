@@ -30,6 +30,8 @@ private:
 	void advanceDdramAddress();
 
 	IDisplay &display_;
+	uint8_t display_cursor_row_;
+	uint8_t display_cursor_column_;
 	bool increment_;
 	bool shift_on_write_;
 	bool display_enabled_;

@@ -44,3 +44,20 @@ IDisplay &getDisplay() {
 #error "Selected DISPLAY_BACKEND is not implemented."
 #endif
 }
+
+void serviceDisplayIdleWork() {
+#if DISPLAY_BACKEND == DUAL
+	auto &display = static_cast<DualDisplay &>(getDisplay());
+	display.pumpSecondary();
+#else
+	// No-op for single-display backends.
+#endif
+}
+
+void setDualQueueingEnabled(bool enabled) {
+#if DISPLAY_BACKEND == DUAL
+	static_cast<DualDisplay &>(getDisplay()).setQueueingEnabled(enabled);
+#else
+	(void)enabled;
+#endif
+}

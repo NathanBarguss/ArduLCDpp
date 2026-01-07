@@ -28,6 +28,38 @@ byte cmd; //will hold our sent command
 static IDisplay &display = getDisplay();
 static bool host_active = false;
 static bool startup_screen_visible = false;
+static bool pending_host_active_report = false;
+#if ENABLE_SERIAL_DEBUG
+static uint32_t last_rx_micros = 0;
+static constexpr uint32_t HOST_IDLE_BEFORE_LOG_US = 20000; // 20ms of quiet = burst finished at 57,600 bps
+static uint16_t rx_bytes_total = 0;
+static uint16_t rx_bytes_since_boot = 0;
+#endif
+
+#if ENABLE_SERIAL_DEBUG
+static void emit_boot_diagnostics();
+static void maybe_emit_host_active_report() {
+	// Once the host stream has gone idle, emit the "host active" banner and
+	// boot diagnostics (and re-enable verbose logging) without risking RX loss.
+	if (!pending_host_active_report) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+
+	SerialDebug::setRuntimeEnabled(true);
+	Serial.println(F("raw: host active"));
+	SerialDebug::kv(true, F("rx.bytes_total"), rx_bytes_total);
+	SerialDebug::kv(true, F("rx.bytes_since_boot"), rx_bytes_since_boot);
+	emit_boot_diagnostics();
+	SerialDebug::line(true, F("serial_debug: host active"));
+	pending_host_active_report = false;
+}
+#endif
 
 #if DISPLAY_BACKEND != HD44780
 static Hd44780CommandTranslator command_translator(display);
@@ -140,6 +172,7 @@ void setup() {
 	SerialDebug::setRuntimeEnabled(true);
 	Serial.println(F("debug: instrumentation armed"));
 #endif
+	setDualQueueingEnabled(false);
 	DEBUG_LOG("setup: serial online");
 	// set up the LCD's number of columns and rows:
 	DEBUG_LOG("setup: display.begin");
@@ -163,7 +196,12 @@ void setup() {
 #endif
 	display_startup_screen();
 	DEBUG_LOG("setup: startup banner drawn");
-
+#if ENABLE_SERIAL_DEBUG
+	Serial.print(F("debug: free_sram.after_banner="));
+	Serial.println(free_sram());
+#endif
+	// Ensure any deferred OLED bytes drain before we start servicing the host.
+	serviceDisplayIdleWork();
 }
 
 int serial_read() {
@@ -175,10 +213,21 @@ int serial_read() {
 	while(result == -1) {
 		if(Serial.available() > 0) {
 			result = Serial.read();
+#if ENABLE_SERIAL_DEBUG
+			++rx_bytes_total;
+			++rx_bytes_since_boot;
+			last_rx_micros = micros();
+#endif
 		}
 #if ENABLE_SERIAL_DEBUG
 		else {
+			maybe_emit_host_active_report();
+			serviceDisplayIdleWork();
 			++spins;
+		}
+#else
+		else {
+			serviceDisplayIdleWork();
 		}
 #endif
 	}
@@ -226,16 +275,20 @@ void loop() {
 	if (!host_active) {
 		host_active = true;
 #if ENABLE_SERIAL_DEBUG
-		SerialDebug::setRuntimeEnabled(true);
-		Serial.println(F("raw: host active"));
-		emit_boot_diagnostics();
-		SerialDebug::line(true, F("serial_debug: host active"));
-		Serial.flush();
+		// Important: do not emit verbose serial logs while the host may still be
+		// streaming a burst, otherwise we can block long enough to overrun the
+		// UART RX buffer and lose the tail bytes we are trying to process.
+		SerialDebug::setRuntimeEnabled(false);
+		rx_bytes_since_boot = 0;
+		pending_host_active_report = true;
 #else
 		SerialDebug::setRuntimeEnabled(true);
 #endif
+		setDualQueueingEnabled(true);
 		dismiss_startup_screen();
 	}
+	// Note: host-active reporting is emitted from the `serial_read()` idle loop
+	// so we still report even when the host stops sending bytes.
 	switch(cmd) {
 			case 0xFE:
 #if DISPLAY_BACKEND == HD44780
@@ -259,4 +312,5 @@ void loop() {
 #endif
 				break;
 	}
+	serviceDisplayIdleWork();
 }

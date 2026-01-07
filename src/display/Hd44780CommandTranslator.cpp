@@ -11,6 +11,8 @@ Hd44780CommandTranslator::Hd44780CommandTranslator(IDisplay &display)
 }
 
 void Hd44780CommandTranslator::reset() {
+	display_cursor_row_ = 0;
+	display_cursor_column_ = 0;
 	increment_ = true;
 	shift_on_write_ = false;
 	display_enabled_ = true;
@@ -72,9 +74,18 @@ bool Hd44780CommandTranslator::handleData(uint8_t value) {
 	const uint8_t current_column = logical_column_;
 	const uint8_t current_ddram = ddram_address_;
 #endif
-	display_.setCursor(logical_column_, logical_row_);
+	// Avoid calling setCursor() for every byte: it's expensive on HD44780 and
+	// quickly overruns the UART during fast bursts. Only reposition when the
+	// display cursor is no longer at the logical cursor.
+	if (display_cursor_row_ != logical_row_ || display_cursor_column_ != logical_column_) {
+		display_.setCursor(logical_column_, logical_row_);
+		display_cursor_row_ = logical_row_;
+		display_cursor_column_ = logical_column_;
+	}
 	display_.write(value);
 	advanceDdramAddress();
+	display_cursor_row_ = logical_row_;
+	display_cursor_column_ = logical_column_;
 #if ENABLE_SERIAL_DEBUG
 	if (SerialDebug::isRuntimeEnabled()) {
 		const int16_t delta = static_cast<int16_t>(static_cast<int8_t>(ddram_address_) -
@@ -100,6 +111,8 @@ void Hd44780CommandTranslator::handleClear() {
 	ddram_address_ = 0;
 	logical_row_ = 0;
 	logical_column_ = 0;
+	display_cursor_row_ = 0;
+	display_cursor_column_ = 0;
 }
 
 void Hd44780CommandTranslator::handleHome() {
@@ -108,6 +121,8 @@ void Hd44780CommandTranslator::handleHome() {
 	ddram_address_ = 0;
 	logical_row_ = 0;
 	logical_column_ = 0;
+	display_cursor_row_ = 0;
+	display_cursor_column_ = 0;
 }
 
 void Hd44780CommandTranslator::handleEntryMode(uint8_t value) {
@@ -153,6 +168,8 @@ void Hd44780CommandTranslator::handleSetDdramAddress(uint8_t value) {
 		logical_row_ = row;
 		logical_column_ = column;
 		display_.setCursor(column, row);
+		display_cursor_row_ = row;
+		display_cursor_column_ = column;
 	}
 }
 
