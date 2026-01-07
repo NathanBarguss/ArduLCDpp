@@ -27,7 +27,7 @@ We need a cleanup pass to reclaim SRAM so future features and instrumentation do
    - Capture top SRAM consumers using `avr-nm --size-sort` on `firmware.elf`.
 
 2. **Low-risk compile-time wins (apply one at a time)**
-   - Reduce UART TX buffer: `-DSERIAL_TX_BUFFER_SIZE=32` (keep RX unchanged initially).
+   - Reduce UART TX buffer: `-DSERIAL_TX_BUFFER_SIZE=16` (keep RX unchanged initially).
    - Reduce Wire/TWI buffers: `-DTWI_BUFFER_LENGTH=16` (saves ~48 bytes across 3 buffers).
    - Rebuild + re-run T4 after each change; proceed only if PASS.
 
@@ -62,3 +62,11 @@ We need a cleanup pass to reclaim SRAM so future features and instrumentation do
   - `pio run -e nano168_dual_serial -t size`
   - `python scripts/t4_with_logs.py --port COM6 --test t4`
   - `python scripts/t4_with_logs.py --port COM6 --test t8`
+
+## Notes (2026-01-07)
+- Applied `-DSERIAL_TX_BUFFER_SIZE=16` on `nano168_dual_serial`.
+- Size delta:
+  - Data: 900 bytes -> 852 bytes (saves 48 bytes SRAM).
+- Bench verification:
+  - T4 PASS: `rx.bytes_total=84`, `free_sram.after_banner=167`
+  - T8 PASS: `rx.bytes_total=1024`, `free_sram.after_banner=167`
