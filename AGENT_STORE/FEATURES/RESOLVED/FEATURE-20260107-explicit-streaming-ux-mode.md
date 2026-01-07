@@ -68,4 +68,4 @@ We want to expose this tradeoff as an explicit UX mode so bench users can choose
   - T8 passes: no resets on `nano168_dual_serial`; OLED/LCD parity preserved (including custom glyph flows).
 - `Immediate` mode:
   - Intended for UX comparison under paced host traffic; unpaced bursts may drop bytes (documented/acceptable), but must not reset.
-  - Bench validation still required for the unpaced case (ensure “no reset” holds even if bytes drop).
+  - Unpaced T8: no resets observed in capture window (drops allowed).
