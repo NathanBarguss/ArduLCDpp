@@ -70,3 +70,10 @@ We need a cleanup pass to reclaim SRAM so future features and instrumentation do
 - Bench verification:
   - T4 PASS: `rx.bytes_total=84`, `free_sram.after_banner=167`
   - T8 PASS: `rx.bytes_total=1024`, `free_sram.after_banner=167`
+
+- Applied `-DTWI_BUFFER_LENGTH=16` on `nano168_dual_serial`.
+- Size delta:
+  - Data: 852 bytes -> 804 bytes (saves 48 bytes SRAM).
+- Bench verification:
+  - T4 PASS: `rx.bytes_total=84`, `free_sram.after_banner=215`
+  - T8 PASS: `rx.bytes_total=1024`, `free_sram.after_banner=215`
