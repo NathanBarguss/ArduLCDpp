@@ -26,6 +26,18 @@
 #define ENABLE_DUAL_QUEUE 0
 #endif
 
+// Streaming UX mode:
+// - Immediate: write-through to displays as bytes arrive (best visual immediacy,
+//              may require host pacing to avoid UART overruns on small MCUs).
+// - StreamingSafe: defer display updates during host bursts, then refresh during
+//                  idle (best data integrity for unpaced bursts).
+#define STREAMING_MODE_IMMEDIATE 0
+#define STREAMING_MODE_SAFE 1
+
+#ifndef STREAMING_MODE_DEFAULT
+#define STREAMING_MODE_DEFAULT STREAMING_MODE_SAFE
+#endif
+
 #ifndef OLED_RESET_PIN
 #define OLED_RESET_PIN 0xFF
 #endif

@@ -29,6 +29,8 @@ static IDisplay &display = getDisplay();
 static bool host_active = false;
 static bool startup_screen_visible = false;
 static bool pending_host_active_report = false;
+static uint8_t streaming_mode = STREAMING_MODE_DEFAULT;
+static bool pending_streaming_mode_report = false;
 #if ENABLE_SERIAL_DEBUG
 static uint32_t last_rx_micros = 0;
 static constexpr uint32_t HOST_IDLE_BEFORE_LOG_US = 20000; // 20ms of quiet = burst finished at 57,600 bps
@@ -58,6 +60,33 @@ static void maybe_emit_host_active_report() {
 	emit_boot_diagnostics();
 	SerialDebug::line(true, F("serial_debug: host active"));
 	pending_host_active_report = false;
+}
+#endif
+
+static void apply_streaming_mode(bool announce_if_changed) {
+	const bool safe = streaming_mode == STREAMING_MODE_SAFE;
+	setDualQueueingEnabled(safe);
+	if (announce_if_changed) {
+		pending_streaming_mode_report = true;
+	}
+}
+
+#if ENABLE_SERIAL_DEBUG
+static void maybe_emit_streaming_mode_report() {
+	if (!pending_streaming_mode_report) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+	SerialDebug::setRuntimeEnabled(true);
+	SerialDebug::printPrefix();
+	Serial.print(F("mode.streaming="));
+	Serial.println(streaming_mode == STREAMING_MODE_SAFE ? F("safe") : F("immediate"));
+	pending_streaming_mode_report = false;
 }
 #endif
 
@@ -222,6 +251,7 @@ int serial_read() {
 #if ENABLE_SERIAL_DEBUG
 		else {
 			maybe_emit_host_active_report();
+			maybe_emit_streaming_mode_report();
 			serviceDisplayIdleWork();
 			++spins;
 		}
@@ -284,12 +314,25 @@ void loop() {
 #else
 		SerialDebug::setRuntimeEnabled(true);
 #endif
-		setDualQueueingEnabled(true);
+		apply_streaming_mode(false);
 		dismiss_startup_screen();
 	}
 	// Note: host-active reporting is emitted from the `serial_read()` idle loop
 	// so we still report even when the host stops sending bytes.
 	switch(cmd) {
+			case 0xFC: {
+				// ArduLCDpp meta/control prefix (reserved).
+				const uint8_t subcmd = static_cast<uint8_t>(serial_read());
+				if (subcmd == 0x10) { // SET_STREAMING_MODE
+					const uint8_t mode = static_cast<uint8_t>(serial_read());
+					const uint8_t normalized = mode ? STREAMING_MODE_SAFE : STREAMING_MODE_IMMEDIATE;
+					if (streaming_mode != normalized) {
+						streaming_mode = normalized;
+						apply_streaming_mode(true);
+					}
+				}
+				break;
+			}
 			case 0xFE:
 #if DISPLAY_BACKEND == HD44780
 				display.command(serial_read());
