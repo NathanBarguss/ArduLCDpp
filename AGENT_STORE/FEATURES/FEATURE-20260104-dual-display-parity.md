@@ -21,20 +21,13 @@ Until now we treated the LCD and OLED as mutually exclusive compile-time targets
 3. Decide how `DISPLAY_BACKEND` (or successor flag) selects between LCD, OLED, and DUAL to avoid ad-hoc build flags. **(DONE)** — `include/DisplayConfig.h` defines `HD44780`, `OLED`, `DUAL`; `platformio.ini` now exposes `nano168_dual`.
 4. Update docs/readme + AGENT_STORE guidance to explain when dual mode is useful and any hardware caveats (power draw, startup timing, etc.). **(IN PROGRESS)** — README lists the new environment, but wiring/power caveats plus smoke-test notes still need to be documented here and in `docs/display_smoke_tests.md`.
 5. Exercise manual smoke tests with both panels connected; capture any timing or current issues before wider adoption. **(IN PROGRESS)** - Command translator now drives the OLED path, so parity runs can cover T1-T6; still need to log results + power notes in this ticket.
-6. **2026-01-05 serial-overrun containment plan (tied to `BUG-20260104-serial-overrun`)**
-   1. Rebuild/upload the `nano168_dual` env and rerun T4/T8 at full speed to confirm the current blank-row failure, recording the exact board/COM port plus photos/log snippets in the bug ticket before touching code.
-   2. Add guarded debug helpers (behind `ENABLE_SERIAL_DEBUG`) that dump free SRAM, OLED init duration, and I²C clock right after `display.begin()` in `src/main.cpp`, then capture those baseline numbers inside the bug ticket’s constraint section.
-   3. Introduce a reusable `SerialDebug` shim so every module can emit timestamped traces without sprinkling raw `Serial.print` calls; land this scaffolding by itself and verify T1 still passes with debug disabled.
-   4. Instrument `DualDisplay::write`, `Hd44780CommandTranslator::handleData`, and `serial_read()` to log OLED blocking time, logical cursor positions, and UART starvation windows. Build with debug enabled and capture a single T4 log to prove the instrumentation works.
-   5. Collect structured telemetry (serial logs, queue depth snapshots, photos) from fresh T4/T8 runs and summarize the data here plus in the bug ticket so future work starts from the same timing/memory baseline.
-   6. Draft the OLED ring-buffer design in this ticket (target depth, SRAM cost, drain policy) before coding to ensure it fits the `nano168_dual` budget established above.
-   7. Implement the buffer under a feature flag (`ENABLE_OLED_QUEUE`), keeping LCD writes synchronous while OLED writes enqueue `(addr,value)` pairs that drain only when `Serial.available()==0` or on a watchdog tick; add lightweight unit coverage for enqueue/dequeue correctness.
-   8. Integrate the queue with the runtime loop, emit overflow warnings plus a brief backlight blink when drops occur, and validate each sub-step by re-running T4 immediately so we never need a rollback.
-   9. Once the backlog drains cleanly, rerun the full smoke matrix on both `nano168_dual` and `nano_hd44780`, archive PASS evidence in this ticket, and only then move the bug file into `AGENT_STORE/BUGS/RESOLVED/`.
+6. Serial-overrun mitigation (resolved 2026-01-07; see `BUGS/RESOLVED/BUG-20260104-serial-overrun.md`)
+   - Outcome: unpaced T4/T8 now pass on `nano168_dual_serial` by deferring display work during host bursts and refreshing dirty rows once RX goes idle.
+   - UX note: during a burst, parity updates can lag and then "snap" to parity during idle; see `FEATURE-20260107-explicit-streaming-ux-mode.md` for making this an explicit operator choice.
 
 # Acceptance Criteria
 - Building with the new dual mode flag results in both displays showing identical startup banners and host-driven content without recompiling between tests. **Startup banner parity confirmed 2026-01-04 after reordering `Serial.begin()` ahead of display init. Host-driven parity still pending command translator.**
-- Brightness commands affect both panels predictably, with documented mapping. **LCD PWM + OLED contrast both respond, but the mapping hasn’t been calibrated or documented yet.**
+- Brightness commands affect both panels predictably, with documented mapping. **LCD PWM + OLED contrast both respond, but the mapping hasn't been calibrated or documented yet.**
 - Existing single-backend builds continue to compile and run without regression. **All PlatformIO envs build; need a quick regression flash on `nano168_hd44780` after debug logging is removed.**
 - README/AGENT instructions tell contributors how to enable the dual build and why they might use it. **Usage documented in README; still need workflow notes here plus smoke-test checklist updates.**
 

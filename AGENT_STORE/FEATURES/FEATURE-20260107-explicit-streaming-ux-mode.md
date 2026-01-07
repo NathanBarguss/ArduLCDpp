@@ -1,17 +1,17 @@
 # Goal
-Make the “defer display updates while host streaming” behavior an explicit, user-visible mode that can be enabled/disabled intentionally (instead of being an implicit mitigation).
+Make the "defer display updates while host streaming" behavior an explicit, user-visible mode that can be enabled/disabled intentionally (instead of being an implicit mitigation).
 
 # Background
-The ATmega168 can overrun its UART RX buffer during unpaced host bursts (e.g., los-panel T4/T8). The MVP mitigation that fixed this was to defer both LCD+OLED updates while the host is actively streaming, then “catch up” by refreshing dirty rows once the RX stream goes idle.
+The ATmega168 can overrun its UART RX buffer during unpaced host bursts (e.g., los-panel T4/T8). The MVP mitigation that fixed this was to defer both LCD+OLED updates while the host is actively streaming, then "catch up" by refreshing dirty rows once the RX stream goes idle.
 
 This solves data loss, but it introduces a UX tradeoff: the OLED (and now the LCD) can lag during streaming bursts and then snap to parity afterward.
 
 We want to expose this tradeoff as an explicit UX mode so bench users can choose:
-- “Low-latency parity” (best visual immediacy, may require host pacing / may drop bytes under unpaced bursts), or
-- “Streaming safe” (no byte loss under bursts, displays refresh after idle).
+- "Low-latency parity" (best visual immediacy, may require host pacing / may drop bytes under unpaced bursts), or
+- "Streaming safe" (no byte loss under bursts, displays refresh after idle).
 
 # Requirements
-- Provide a clear, explicit “streaming mode” switch that controls whether display writes are deferred during host bursts.
+- Provide a clear, explicit "streaming mode" switch that controls whether display writes are deferred during host bursts.
 - Default should remain safe for the constrained Nano168 dual build (no lost bytes in T4/T8 without host pacing).
 - Must work for LCD-only, OLED-only, and dual backends (no-op where not applicable).
 - Must be configurable:
@@ -24,7 +24,7 @@ We want to expose this tradeoff as an explicit UX mode so bench users can choose
 - Test harness: `scripts/t4_with_logs.py` for T4/T8 burst verification.
 
 # Implementation Plan
-1. Add a small “streaming UX mode” enum with two states:
+1. Add a small "streaming UX mode" enum with two states:
    - `StreamingSafe` (defer writes during bursts; refresh on idle)
    - `Immediate` (write-through to LCD/OLED as bytes arrive)
 2. Add a compile-time default for each PlatformIO env (e.g., `-DSTREAMING_MODE_DEFAULT=StreamingSafe`).

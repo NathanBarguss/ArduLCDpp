@@ -2,7 +2,7 @@
 Publish a smoke-test matrix and simple demo scripts covering the HD44780 build, the OLED build, and the dual-display parity mode to prevent regressions as new display sizes are added.
 
 # Background
-With multiple display targets (and now a mode that drives both simultaneously), manual spot checks are easy to forget. A repeatable checklist (even if manual) ensures parity for cursor bounds, custom glyphs, backlight, and USB serial stability—plus a dedicated column that calls out when the LCD and OLED disagree while running the dual firmware.
+With multiple display targets (and now a mode that drives both simultaneously), manual spot checks are easy to forget. A repeatable checklist (even if manual) ensures parity for cursor bounds, custom glyphs, backlight, and USB serial stability - plus a dedicated column that calls out when the LCD and OLED disagree while running the dual firmware.
 
 # Requirements
 - Create a test plan document (e.g., `/docs/display_smoke_tests.md`) enumerating cases: clear/home/setCursor bounds, full-screen fills, custom chars 0-7, backlight/brightness toggles, and USB serial connect/disconnect behavior.

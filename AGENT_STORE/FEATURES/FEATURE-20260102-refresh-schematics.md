@@ -10,7 +10,7 @@ Firmware and docs now assume the refreshed pinout, but the only visual reference
 - Call out RW tied low and note the serial/power connectors exactly as built.
 
 # Dependencies
-- Finalized pin map lives in `AGENTS.MD` and README ("Current Nano ↔ HD44780 wiring" section).
+- Finalized pin map lives in `AGENTS.MD` and README ("Current Nano <-> HD44780 wiring" section).
 - Any KiCad/gschem symbols used in the legacy file should remain available or be replaced with equivalent open-format symbols.
 
 # Implementation Plan

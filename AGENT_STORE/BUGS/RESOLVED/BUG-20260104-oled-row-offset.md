@@ -33,4 +33,4 @@ OLED cursor renders one row lower than expected after HD44780 command translatio
 # Verification Notes
 - Capture before/after photos of both panels to confirm the cursors line up.
 - Re-run the entire cursor sweep (T3) once the single-character case is fixed to ensure every DDRAM address maps to the correct OLED row/column.
-- 2026-01-04: Resolution — panel misread caused by the OLED module's physical vertical offset; after rechecking the mounting and contrast, both displays render `A` at row 0 column 0 without firmware changes. Closing ticket as a non-software issue.
+- 2026-01-04: Resolution - panel misread caused by the OLED module's physical vertical offset; after rechecking the mounting and contrast, both displays render `A` at row 0 column 0 without firmware changes. Closing ticket as a non-software issue.

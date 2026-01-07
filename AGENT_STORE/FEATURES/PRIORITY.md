@@ -3,7 +3,7 @@
 This queue focuses on landing a stable 16x4 OLED MVP while keeping the existing HD44780 path untouched and adding a dual-display parity build for live comparisons. Each item lists the ticket ID, why it must happen in this slot, and the most important prerequisites. When you touch specs created before 2026-01-04, update them if they still assume “only one display per build.”
 
 ## Phase 1 - Core Abstraction *(Completed)*
-- ✅ **FEATURE-20251223-display-backend-interface** – Resolved (see `FEATURES/RESOLVED/`). Rendering now goes through `IDisplay`, so downstream tickets can assume the abstraction exists.
+- (Done) **FEATURE-20251223-display-backend-interface** - Resolved (see `FEATURES/RESOLVED/`). Rendering now goes through `IDisplay`, so downstream tickets can assume the abstraction exists.
 
 ## Phase 2 - OLED Bring-up
 1. **FEATURE-20251223-oled-backend** - Vendor `lcd2oled` into `lib/` and stand up `OLEDDisplay` using the new interface. No los-panel logic changes yet; this just proves we can talk to the panel.
@@ -19,6 +19,11 @@ This queue focuses on landing a stable 16x4 OLED MVP while keeping the existing 
 2. **FEATURE-20260104-dual-display-parity** - Stand up the mirrored output mode so UX/QA can evaluate LCD vs OLED parity without reflashing between tests.
 3. **FEATURE-20251223-smoke-test-matrix** - Publish the dual-backend (and now dual-mode) test checklist and demo scripts, capturing the scenarios already exercised during bring-up.
 4. **FEATURE-20251223-oled-docs** - Finalize `/docs/oled_i2c_setup.md`, compile flag instructions (including dual mode), and LCDd.conf guidance so UX/devs have a single onboarding reference.
+
+## Phase 3.5 - Burst-Safe Streaming (Recently Landed)
+1. **BUG-20260104-serial-overrun** - Resolved (see `BUGS/RESOLVED/BUG-20260104-serial-overrun.md`). Unpaced T4/T8 pass on `nano168_dual_serial` by deferring display work during host bursts and refreshing during idle.
+2. **FEATURE-20260107-sram-budget-and-trims** - Active. Captures the SRAM headroom targets and low-risk trim knobs validated on Nano168.
+3. **FEATURE-20260107-explicit-streaming-ux-mode** - Active. Captures a UX toggle to make "Streaming safe" vs "Immediate" an explicit operator choice.
 
 ## Deferred / Post-MVP
 1. **FEATURE-20251223-128x64-scouting** - Research path for SSD1306 128x64 panels (potential 16x8 or 20x4 targets). Leave this deprioritized until the 16x4 MVP ships and stabilizes.

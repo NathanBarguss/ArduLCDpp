@@ -1,5 +1,5 @@
 # Summary
-Translator-driven dual/OLED builds can drop tail bytes during fast, unpaced host bursts because OLED I2C writes block `serial_read()` long enough for the UART RX buffer to overrun.
+Resolved (2026-01-07): Unpaced host bursts (T4/T8 los-panel traffic) could drop tail bytes on translator-driven dual/OLED builds because display work (especially OLED I2C) blocked `serial_read()` long enough to overrun the UART RX buffer.
 
 # Environment
 - Firmware branch: `feature/FEATURE-20251223-oled-backend`
@@ -28,31 +28,33 @@ Translator-driven dual/OLED builds can drop tail bytes during fast, unpaced host
   - `debug: free_sram.after_banner=134`
 - T4 (84 bytes) and T8 (1024 bytes) replayed successfully with `scripts/t4_with_logs.py`:
   - Firmware reaches `raw: host active` and stays stable (no boot loops / resets).
-  - With mitigation enabled, OLED work is deferred during the burst and performed during idle.
+  - With mitigation enabled, display work is deferred during the burst and performed during idle.
   - When idle (`Serial.available()==0`), OLED catch-up happens as row refreshes:
-    - `dual.refresh.row_us≈17900` per row (20 columns), repeated for rows 0-3.
+    - `dual.refresh.row_us ~= 17900` per row (20 columns), repeated for rows 0-3.
 
-# Mitigation Implemented (defer OLED while host streaming)
-- Goal: prevent SSD1306 I2C writes from blocking `serial_read()` during unpaced bursts (root cause of the missing tail bytes).
+# Fix Implemented (defer display work while host streaming)
+- Goal: prevent OLED I2C (and other per-byte display work) from blocking `serial_read()` during unpaced bursts (root cause of missing tail bytes).
 - Build-time flag: `ENABLE_DUAL_QUEUE=1` (enabled for `nano168_dual_serial` only).
 - Runtime behavior:
-  - Before `host_active`, OLED mirroring stays synchronous (boot banner and init remain visible).
-  - After `host_active`, OLED mirroring is deferred: `DualDisplay::write()` updates the LCD immediately and updates a small 20x4 shadow buffer.
+  - Before `host_active`, mirroring stays synchronous (boot banner and init remain visible on both panels).
+  - After `host_active`, display updates are deferred: `DualDisplay::write()` updates a small 20x4 shadow buffer instead of issuing slow display calls.
   - During idle time, `serviceDisplayIdleWork()` refreshes up to one dirty row per call, so bursts are not blocked by I2C.
 - SRAM reclamation for ATmega168:
   - `nano168_dual_serial` builds `lcd2oled` with `-DLCD2OLED_ENABLE_TEXT_BUFFER=0` to free RAM for the dual 20x4 shadow buffer.
+
+- Supporting change: `Hd44780CommandTranslator` avoids redundant `setCursor()` calls (less per-byte overhead during bursts).
 
 # Runtime Constraints
 - ATmega168 headroom is tight: `nano168_dual_serial` reports 885/1024 bytes RAM used, with `free_sram.after_banner=134`.
 - Default TWI/I2C speed remains 100 kHz; OLED row refresh costs ~18 ms per row at that speed.
 
 # Fix Plan
-1. Add a DOR0/FE0 error counter in `serial_read()` so we can assert “no UART overruns” under T8 (rather than inferring it from backlog timing).
+1. Add a DOR0/FE0 error counter in `serial_read()` so we can assert "no UART overruns" under T8 (rather than inferring it from backlog timing).
 2. Decide whether to bump I2C to 400 kHz in `OLEDDisplay::begin()` (if the module is stable at 400 kHz) to shrink `dual.refresh.row_us` without impacting burst processing.
 3. Bench-confirm UX: during a burst the OLED will lag, then snap to parity once the host goes idle.
 
 # Verification Notes
-- Re-run `python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t4` and confirm:
-  - No resets.
-  - LCD fills immediately; OLED fills after idle refresh.
-- Re-run `python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t8` and confirm the same behavior under the 1 KB burst.
+- PASS (2026-01-07) T4: `python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t4`
+  - `rx.bytes_total=84`, no resets, both displays end in 4 full rows (OLED fills after idle refresh).
+- PASS (2026-01-07) T8: `python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t8`
+  - `rx.bytes_total=1024`, no resets, both displays end in parity.

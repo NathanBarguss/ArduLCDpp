@@ -7,7 +7,7 @@ lcd2oled lets us define the logical rows/columns via `begin(width, height)`, eve
 # Requirements
 - Initialize the OLED backend with `begin(16, 4)` and clamp all cursor positions to 0..15 by 0..3.
 - Update protocol parsing so commands targeting rows/columns outside the 16x4 window are safely clipped or rejected.
-- Document the physical page mapping (4 SSD1306 pages → 4 character rows) so future work on taller panels stays consistent.
+- Document the physical page mapping (4 SSD1306 pages -> 4 character rows) so future work on taller panels stays consistent.
 
 # Dependencies
 - Display interface abstraction and OLED backend in place.

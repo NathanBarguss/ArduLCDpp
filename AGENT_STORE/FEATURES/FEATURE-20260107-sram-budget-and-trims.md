@@ -1,12 +1,12 @@
 # Goal
-Create a measured, low-risk SRAM reduction plan for the Nano168 dual + serial build so we have predictable headroom (target: ≥160 bytes free after boot banner) without regressing the T4/T8 “no dropped bytes” guarantee.
+Create a measured, low-risk SRAM reduction plan for the Nano168 dual + serial build so we have predictable headroom (target: >= 160 bytes free after boot banner) without regressing the T4/T8 "no dropped bytes" guarantee.
 
 # Background
 The current `nano168_dual_serial` MVP is stable and passes unpaced T4/T8, but SRAM is very tight:
 - PlatformIO reports `Data: 900 bytes (87.9% Full)` for ATmega168 (1 KB SRAM).
-- Runtime probes during T4/T8 have shown ~`119–125` bytes free after the boot banner.
+- Runtime probes during T4/T8 have shown ~`119-125` bytes free after the boot banner.
 
-We need a cleanup pass to reclaim SRAM so future features and instrumentation don’t push us back into unstable territory.
+We need a cleanup pass to reclaim SRAM so future features and instrumentation don't push us back into unstable territory.
 
 # Requirements
 - Maintain behavior: T4 and T8 must still PASS with `rx.bytes_total` matching expected (`84` and `1024`).
@@ -42,7 +42,7 @@ We need a cleanup pass to reclaim SRAM so future features and instrumentation do
      - No resets and displays still end in parity
 
 5. **Documentation**
-   - Add a short “SRAM budget” section to the project docs (or AGENT_STORE) listing:
+   - Add a short "SRAM budget" section to the project docs (or AGENT_STORE) listing:
      - Current baseline numbers
      - Target headroom
      - Available build flags and their SRAM deltas
