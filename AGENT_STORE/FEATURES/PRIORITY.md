@@ -9,7 +9,7 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 1. **FEATURE-20251223-oled-backend** - Vendor `lcd2oled` into `lib/` and stand up `OLEDDisplay` using the new interface. No los-panel logic changes yet; this just proves we can talk to the panel.
 2. **FEATURE-20251223-oled-command-translator** - lcd2oled lacks `command()`, so intercept `0xFE` traffic and emit equivalent interface calls. Without this layer LCDproc cannot control cursors, clears, or CGRAM.
 3. **FEATURE-20251223-cgram-shim** - Extend the translator so CGRAM writes become `createChar()` calls; prerequisite for bargraph/icon fidelity.
-4. **FEATURE-20251223-custom-char-parity** - Exercise the shim with real LCDproc glyphs and add validation assets so regressions are caught early.
+4. **FEATURE-20251223-custom-char-parity** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-custom-char-parity.md`. T5 custom glyph parity validated on LCD/OLED/Dual (including burst-safe queueing).
 5. **FEATURE-20251223-oled-geometry** - Lock the logical window to the firmware geometry (`LCDW` x `LCDH`) and clamp coordinates so LCDproc layouts behave the same on LCD and OLED.
 6. **FEATURE-20251223-oled-backlight** - Map los-panel brightness commands to OLED brightness settings once basic rendering is proven.
 7. **FEATURE-20251223-oled-performance** - Patch lcd2oled `clear()` for 128x32 panels and address any flicker from rapid updates after the core features work.
@@ -39,3 +39,4 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 - **FEATURE-20260102-power-on-message** - Current boot banner with shortened URL is live.
 - **FEATURE-20251223-smoke-test-matrix** - Manual smoke tests documented and aligned with OLED + Dual expectations; see `FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`.
 - **FEATURE-20251223-oled-docs** - SSD1306 wiring + environment/config walkthrough; see `FEATURES/RESOLVED/FEATURE-20251223-oled-docs.md`.
+- **FEATURE-20251223-custom-char-parity** - CGRAM slots 0-7 parity validated on LCD/OLED/Dual; see `FEATURES/RESOLVED/FEATURE-20251223-custom-char-parity.md`.

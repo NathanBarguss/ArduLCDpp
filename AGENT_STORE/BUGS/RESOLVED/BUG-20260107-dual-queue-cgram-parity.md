@@ -52,3 +52,14 @@ Do not disable queueing during CGRAM programming (that risks reintroducing UART 
 - This is a parity/UX issue, not a stability issue: it should be fixed without changing the burst-safe queueing policy.
 - The CGRAM cache cost is small (64 bytes for 8 slots x 8 rows) and should fit within the Nano168 SRAM budget, especially after the recent TX/TWI trims.
 
+## Resolution (2026-01-07)
+- Fix landed: `DualDisplay` now caches CGRAM slot updates while queueing is active and flushes them to the OLED during idle (before row refresh), restoring glyph parity without reintroducing UART overruns.
+- Implementation: commit `0725b83` on `feature/FEATURE-20251223-oled-backend`.
+
+## Verification (Bench)
+- T5 parity (slots 0..7) confirmed on all configurations using the paced probe:
+  - `python scripts/t5_custom_chars.py --port COM6 --delay 6 --backlight 255 --slot-delay-ms 20 --chunk-delay-ms 150 --after-clear-ms 8 --hold 12`
+  - `nano168_hd44780`: LCD renders 8 custom glyphs on rows 0 and 1.
+  - `nano168_oled`: OLED renders the same glyphs.
+  - `nano168_dual_serial`: LCD + OLED render the same glyphs; OLED may catch up after the idle window.
+- Sanity: T8 still passes on all three configurations after the fix (no dropped bytes / no resets).

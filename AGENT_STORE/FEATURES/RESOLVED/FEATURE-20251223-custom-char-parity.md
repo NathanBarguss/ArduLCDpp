@@ -41,4 +41,10 @@ LCDproc relies heavily on custom glyphs for progress bars and status indicators.
 
 # Notes (current status / risk)
 - Current CGRAM translation: `src/display/Hd44780CommandTranslator.cpp` caches CGRAM row bytes and calls `createChar(slot, bitmap)` as the host programs CGRAM.
-- Burst-safe dual queueing caveat: when `ENABLE_DUAL_QUEUE` is enabled and queueing is active, `DualDisplay::createChar()` currently does not forward to the secondary display. If LCDproc sends CGRAM updates during a session, the OLED could miss glyph updates until this is addressed.
+- Dual + burst-safe queueing: CGRAM updates are now cached while queueing is active and flushed to the OLED during idle, restoring parity without risking UART overruns (see `BUG-20260107-dual-queue-cgram-parity`).
+
+## Bench Verification (2026-01-07)
+- T5 parity confirmed (slots 0..7 render correctly):
+  - `nano168_hd44780`, `nano168_oled`, `nano168_dual_serial`
+  - `python scripts/t5_custom_chars.py --port COM6 --delay 6 --backlight 255 --slot-delay-ms 20 --chunk-delay-ms 150 --after-clear-ms 8 --hold 12`
+- T8 passes on all three configurations (no dropped bytes / no resets).
