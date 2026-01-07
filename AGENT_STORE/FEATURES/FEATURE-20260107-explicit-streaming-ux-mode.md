@@ -55,3 +55,9 @@ We want to expose this tradeoff as an explicit UX mode so bench users can choose
 - Bench device: Nano168 dual on COM6.
 - Scripts: `python scripts/t4_with_logs.py --port COM6 --test t4|t8`.
 - Capture photos/video of mode differences for future UX review.
+
+## Notes (2026-01-07)
+- Implemented a first cut of runtime switching via a reserved meta prefix:
+  - Host sends: `FC 10 <mode>` where `<mode>` is `0` (Immediate) or `1` (StreamingSafe).
+  - Compile-time default: `STREAMING_MODE_DEFAULT` (defaults to `STREAMING_MODE_SAFE`).
+- When serial debug is enabled, the firmware emits an idle-gated banner after changes: `mode.streaming=safe|immediate`.

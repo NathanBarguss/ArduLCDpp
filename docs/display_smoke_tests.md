@@ -13,6 +13,11 @@ This checklist keeps HD44780 and OLED backends protocol-compatible as we add har
 - Dual parity (quiet): `nano168_dual` (both panels, serial debug off).
 - Dual + serial debug + burst-safe streaming: `nano168_dual_serial` (use this for T4/T8 on Nano168; display updates may lag during the burst and then catch up during idle).
 
+## Streaming Mode (optional)
+In dual builds, the firmware supports an explicit streaming UX toggle:
+- `FC 10 01` = StreamingSafe (defer display work during bursts, catch up on idle)
+- `FC 10 00` = Immediate (write-through; may require host pacing to avoid drops on small MCUs)
+
 ## Sending Test Sequences
 Use the helper script to emit arbitrary los-panel bytes. **Always wait at least 2-3 seconds after opening the serial port before sending data**-the Nano auto-resets when DTR toggles, and anything sent while the bootloader is running gets dropped. Likewise, keep the port open for a few seconds after sending so humans can verify the display state.
 
