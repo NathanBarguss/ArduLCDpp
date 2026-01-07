@@ -61,3 +61,11 @@ We want to expose this tradeoff as an explicit UX mode so bench users can choose
   - Host sends: `FC 10 <mode>` where `<mode>` is `0` (Immediate) or `1` (StreamingSafe).
   - Compile-time default: `STREAMING_MODE_DEFAULT` (defaults to `STREAMING_MODE_SAFE`).
 - When serial debug is enabled, the firmware emits an idle-gated banner after changes: `mode.streaming=safe|immediate`.
+
+## Verification (2026-01-07)
+- `StreamingSafe` mode:
+  - T4 passes: both displays fill 4 rows with Z and `rx.bytes_total` matches expected.
+  - T8 passes: no resets on `nano168_dual_serial`; OLED/LCD parity preserved (including custom glyph flows).
+- `Immediate` mode:
+  - Intended for UX comparison under paced host traffic; unpaced bursts may drop bytes (documented/acceptable), but must not reset.
+  - Bench validation still required for the unpaced case (ensure “no reset” holds even if bytes drop).

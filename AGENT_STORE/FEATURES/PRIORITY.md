@@ -23,7 +23,7 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 ## Phase 3.5 - Burst-Safe Streaming (Recently Landed)
 1. **BUG-20260104-serial-overrun** - Resolved (see `BUGS/RESOLVED/BUG-20260104-serial-overrun.md`). Unpaced T4/T8 pass on `nano168_dual_serial` by deferring display work during host bursts and refreshing during idle.
 2. **FEATURE-20260107-sram-budget-and-trims** - Active. Captures the SRAM headroom targets and low-risk trim knobs validated on Nano168.
-3. **FEATURE-20260107-explicit-streaming-ux-mode** - Active. Captures a UX toggle to make "Streaming safe" vs "Immediate" an explicit operator choice.
+3. **FEATURE-20260107-explicit-streaming-ux-mode** - Implemented MVP; pending one last bench validation of `Immediate` under unpaced bursts (must not reset even if bytes drop).
 
 ## Deferred / Post-MVP
 1. **FEATURE-20251223-128x64-scouting** - Research path for SSD1306 128x64 panels (potential 16x8 or 20x4 targets). Leave this deprioritized until the current MVP ships and stabilizes.
