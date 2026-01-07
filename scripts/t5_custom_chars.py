@@ -82,6 +82,12 @@ def main() -> int:
     parser.add_argument("--delay", type=float, default=3.0, help="Seconds to wait after opening port (auto-reset)")
     parser.add_argument("--hold", type=float, default=2.0, help="Seconds to keep the port open after sending")
     parser.add_argument(
+        "--backlight",
+        type=int,
+        default=None,
+        help="Optional los-panel backlight/brightness byte to send first (0-255). Useful for OLED visibility.",
+    )
+    parser.add_argument(
         "--chunk-delay-ms",
         type=float,
         default=0.0,
@@ -109,6 +115,12 @@ def main() -> int:
 
     with serial.Serial(args.port, args.baud, timeout=1) as ser:
         time.sleep(args.delay)
+
+        if args.backlight is not None:
+            level = max(0, min(255, int(args.backlight)))
+            ser.write(bytes([0xFD, level]))
+            ser.flush()
+            time.sleep(0.05)
 
         if args.chunk_delay_ms <= 0 and args.slot_delay_ms <= 0:
             ser.write(seq)

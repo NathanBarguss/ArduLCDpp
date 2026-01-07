@@ -37,6 +37,14 @@ private:
 	uint8_t dirty_rows_mask_ = 0;
 	char shadow_[LCDW * LCDH];
 
+	// When queueing is enabled we also need to defer custom glyph (CGRAM) updates,
+	// otherwise LCDproc dashboards that rely on glyph slots 0-7 will desync:
+	// the LCD receives `createChar()` immediately but the OLED would miss them.
+	// We cache the latest 8-byte bitmap per slot and flush it to the OLED once
+	// RX goes idle (same quiet window gating as row refresh).
+	uint8_t cgram_dirty_mask_ = 0;
+	uint8_t cgram_shadow_[8][8] = {{0}};
+
 	bool queue_enabled_;
 #endif
 };
