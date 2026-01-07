@@ -71,6 +71,7 @@ Notes:
 ## Behavioral Notes / Limitations
 - HD44780 command translation is best-effort: clear/home/cursor addressing and CGRAM uploads are supported; some less common opcodes (e.g., display shift) may be ignored.
 - On the Nano ATmega168, unpaced host bursts (T4/T8) can require "burst-safe" behavior: in `nano168_dual_serial` the firmware may defer visible updates during the burst and then catch up once RX goes idle. See `docs/display_smoke_tests.md` and `AGENT_STORE/FEATURES/FEATURE-20260107-explicit-streaming-ux-mode.md`.
+- Backlight bytes (`0xFD <level>`) map to SSD1306 contrast. Non-zero values are clamped to a visible floor so the OLED doesn't appear "off" when the firmware uses a very low LCD startup PWM value. Override via `OLED_BRIGHTNESS_MIN` / `OLED_BRIGHTNESS_MAX` in `platformio.ini`.
 
 ## Troubleshooting
 - If the OLED never shows the boot banner in dual mode, verify:
@@ -78,4 +79,3 @@ Notes:
   - The Nano target matches your hardware (`nano168_*` vs `nano_*`).
   - The OLED module power level (3.3V vs 5V).
 - Run the smoke plan (`docs/display_smoke_tests.md`) after wiring changes to confirm parity across HD44780/OLED/Dual.
-

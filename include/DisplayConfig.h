@@ -34,6 +34,19 @@
 #define OLED_DEFAULT_I2C_ADDRESS 0x3C
 #endif
 
+// OLED "backlight" mapping (SSD1306 contrast).
+// The los-panel protocol uses 0..255 backlight bytes; on OLED we map those to
+// contrast. A very low STARTUP_BRIGHTNESS (tuned for an LCD backlight PWM pin)
+// can make the OLED appear completely off, so we apply a visible floor for any
+// non-zero level. Override per-environment via `platformio.ini` build_flags.
+#ifndef OLED_BRIGHTNESS_MIN
+#define OLED_BRIGHTNESS_MIN 32
+#endif
+
+#ifndef OLED_BRIGHTNESS_MAX
+#define OLED_BRIGHTNESS_MAX 255
+#endif
+
 #define HD44780 0
 #define OLED 1
 #define DUAL 2

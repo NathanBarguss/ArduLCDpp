@@ -26,3 +26,9 @@ The HD44780 path controls a physical backlight pin, but OLEDs need brightness ad
 
 # Validation Notes
 - Record video/photos showing the brightness change for documentation/testing.
+
+## Notes (2026-01-07)
+- Implemented OLED brightness mapping:
+  - `OLEDDisplay::setBacklight(level)` maps los-panel `0xFD <level>` to SSD1306 contrast with a visible floor for non-zero values.
+  - Defaults live in `include/DisplayConfig.h`: `OLED_BRIGHTNESS_MIN=32`, `OLED_BRIGHTNESS_MAX=255` (override via `platformio.ini` build flags).
+- Bench sanity: rapid toggles `FD 00/20/80/FF` produce visible contrast changes without hangs.

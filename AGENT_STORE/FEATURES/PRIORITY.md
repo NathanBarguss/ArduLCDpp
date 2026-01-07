@@ -11,7 +11,7 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 3. **FEATURE-20251223-cgram-shim** - Extend the translator so CGRAM writes become `createChar()` calls; prerequisite for bargraph/icon fidelity.
 4. **FEATURE-20251223-custom-char-parity** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-custom-char-parity.md`. T5 custom glyph parity validated on LCD/OLED/Dual (including burst-safe queueing).
 5. **FEATURE-20251223-oled-geometry** - Lock the logical window to the firmware geometry (`LCDW` x `LCDH`) and clamp coordinates so LCDproc layouts behave the same on LCD and OLED.
-6. **FEATURE-20251223-oled-backlight** - Map los-panel brightness commands to OLED brightness settings once basic rendering is proven.
+6. **FEATURE-20251223-oled-backlight** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-oled-backlight.md`. `0xFD` now maps to SSD1306 contrast with a visible floor.
 7. **FEATURE-20251223-oled-performance** - Patch lcd2oled `clear()` for 128x32 panels and address any flicker from rapid updates after the core features work.
 
 ## Phase 3 - Build Selection & Validation
@@ -40,3 +40,4 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 - **FEATURE-20251223-smoke-test-matrix** - Manual smoke tests documented and aligned with OLED + Dual expectations; see `FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`.
 - **FEATURE-20251223-oled-docs** - SSD1306 wiring + environment/config walkthrough; see `FEATURES/RESOLVED/FEATURE-20251223-oled-docs.md`.
 - **FEATURE-20251223-custom-char-parity** - CGRAM slots 0-7 parity validated on LCD/OLED/Dual; see `FEATURES/RESOLVED/FEATURE-20251223-custom-char-parity.md`.
+- **FEATURE-20251223-oled-backlight** - `0xFD` backlight bytes map to OLED contrast with a visible floor; see `FEATURES/RESOLVED/FEATURE-20251223-oled-backlight.md`.

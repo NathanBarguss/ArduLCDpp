@@ -43,6 +43,21 @@ void OLEDDisplay::command(uint8_t value) {
 }
 
 void OLEDDisplay::setBacklight(uint8_t level) {
-	oled_.SetBrightness(level);
-}
+	if (level == 0) {
+		oled_.SetBrightness(0);
+		return;
+	}
 
+	const uint8_t minBrightness = static_cast<uint8_t>(OLED_BRIGHTNESS_MIN);
+	const uint8_t maxBrightness = static_cast<uint8_t>(OLED_BRIGHTNESS_MAX);
+
+	if (maxBrightness <= minBrightness) {
+		oled_.SetBrightness(maxBrightness);
+		return;
+	}
+
+	const uint16_t span = static_cast<uint16_t>(maxBrightness - minBrightness);
+	const uint16_t scaled = static_cast<uint16_t>(minBrightness) +
+	                        (static_cast<uint16_t>(level) * span) / 255U;
+	oled_.SetBrightness(static_cast<uint8_t>(scaled));
+}
