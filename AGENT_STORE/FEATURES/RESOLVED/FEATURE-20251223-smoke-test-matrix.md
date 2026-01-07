@@ -25,4 +25,4 @@ With multiple display targets (and now a mode that drives both simultaneously), 
 
 # Validation Notes
 - Run through the checklist once on each build mode and note any timing issues or missing instrumentation.
-- 2025-12-23: Authored `docs/display_smoke_tests.md` with byte-level procedures for T1-T8; OLED column remains blocked until that backend lands, and the dual column will be populated once FEATURE-20260104-dual-display-parity ships.
+- 2026-01-07: Updated `docs/display_smoke_tests.md` to include expected outcomes for OLED + Dual (including burst-safe "lag then catch up" behavior in `nano168_dual_serial`) and a pointer to `scripts/t4_with_logs.py` for repeatable T4/T8 burst runs.

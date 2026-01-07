@@ -17,7 +17,7 @@ This queue focuses on landing a stable 16x4 OLED MVP while keeping the existing 
 ## Phase 3 - Build Selection & Validation
 1. **FEATURE-20251223-backend-config-switch** - With both backends functional, add the compile-time selector plus default macros so we can create LCD-only, OLED-only, and dual builds deterministically.
 2. **FEATURE-20260104-dual-display-parity** - Stand up the mirrored output mode so UX/QA can evaluate LCD vs OLED parity without reflashing between tests.
-3. **FEATURE-20251223-smoke-test-matrix** - Publish the dual-backend (and now dual-mode) test checklist and demo scripts, capturing the scenarios already exercised during bring-up.
+3. **FEATURE-20251223-smoke-test-matrix** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`. Captures the dual-backend (and dual-mode) checklist and references `docs/display_smoke_tests.md` + `scripts/t4_with_logs.py`.
 4. **FEATURE-20251223-oled-docs** - Finalize `/docs/oled_i2c_setup.md`, compile flag instructions (including dual mode), and LCDd.conf guidance so UX/devs have a single onboarding reference.
 
 ## Phase 3.5 - Burst-Safe Streaming (Recently Landed)
@@ -34,6 +34,7 @@ This queue focuses on landing a stable 16x4 OLED MVP while keeping the existing 
 3. **FEATURE-20260102-refresh-schematics** - Update `resources/wiring_schematic.*` to match the 2026 wiring table (RS=D12, bus on D3–D10, PWM on D11) so docs stop diverging from hardware.
 
 ## Recently Resolved / Archived References
-- **FEATURE-20251223-platformio-migration** – PlatformIO build + multi-env workflow landed; see `FEATURES/RESOLVED/`.
-- **FEATURE-20251223-startup-screen** – Original waiting-for-host banner implemented; superseded by the power-on message update.
-- **FEATURE-20260102-power-on-message** – Current boot banner with shortened URL is live.
+- **FEATURE-20251223-platformio-migration** - PlatformIO build + multi-env workflow landed; see `FEATURES/RESOLVED/`.
+- **FEATURE-20251223-startup-screen** - Original waiting-for-host banner implemented; superseded by the power-on message update.
+- **FEATURE-20260102-power-on-message** - Current boot banner with shortened URL is live.
+- **FEATURE-20251223-smoke-test-matrix** - Manual smoke tests documented and aligned with OLED + Dual expectations; see `FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`.
