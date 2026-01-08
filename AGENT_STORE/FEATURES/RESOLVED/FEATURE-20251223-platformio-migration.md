@@ -14,7 +14,7 @@ The current repo ships only `sketch/sketch.ino`, which depends on the Arduino ID
 
 # Dependencies
 - Display backend abstraction work (e.g., `FEATURE-20251223-backend-config-switch.md`) so build flags remain consistent.
-- Smoke-test matrix (`FEATURE-20251223-smoke-test-matrix.md`) to validate both PlatformIO environments post-migration.
+- Smoke-test matrix (`FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`) to validate both PlatformIO environments post-migration.
 - Research notes in `RESEARCH-20251223-lcdproc-mapping.md` for guidance on serial handling under PlatformIO.
 
 # Implementation Plan

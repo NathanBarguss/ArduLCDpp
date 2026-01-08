@@ -1,6 +1,6 @@
 # ArduLCDpp
 
-ArduLCDpp is our actively maintained fork of the classic ArduLCD USB bridge. We pair an Arduino Nano with an HD44780 (and future OLED) display, speak lcdproc’s los-panel protocol, and keep the firmware modernized with PlatformIO, automated smoke tests, and a shared backlog under `AGENT_STORE/`.
+ArduLCDpp is our actively maintained fork of the classic ArduLCD USB bridge. We pair an Arduino Nano with an HD44780 and an SSD1306 OLED display, speak lcdproc's los-panel protocol, and keep the firmware modernized with PlatformIO, automated smoke tests, and a shared backlog under `AGENT_STORE/`.
 
 This README focuses on the current bench-proven hardware, how to build and test the firmware, and how contributors can sync up with the work queue.
 
@@ -35,7 +35,7 @@ This README focuses on the current bench-proven hardware, how to build and test 
 - `include/DisplayConfig.h` – Dimensions, baud rate, LED pin, backend selectors
 - `docs/` – Smoke tests, lcdproc mapping, helper guides
 - `AGENT_STORE/` – Backlog (FEATURES, BUGS, RESEARCH + RESOLVED archives)
-- `lib/lcd2oled/` – Submodule used by upcoming OLED backend
+- `lib/lcd2oled/` - Submodule used by the SSD1306 OLED backend
 - `resources/` – Schematics, wiring photos, lcdproc sample config
 
 ---
@@ -57,7 +57,9 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 | `uno_hd44780`        | Arduino Uno reference build (default)         |
 | `mega2560_hd44780`   | Arduino Mega 2560                             |
 | `nano_hd44780`       | Nano ATmega328P (new bootloader)              |
-| `nano168_hd44780`    | Nano ATmega168 (lab hardware)                 |
+| `nano168_hd44780`    | Nano ATmega168 (lab hardware, LCD only)       |
+| `nano168_oled`       | Nano ATmega168 driving the SSD1306 OLED       |
+| `nano168_dual`       | Nano ATmega168 mirroring LCD + OLED           |
 
 ```powershell
 # Build default environment
@@ -65,6 +67,12 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 
 # Build/upload Nano168 (bench hardware on COM6)
 & $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_hd44780 --upload-port COM6
+
+# OLED-only bench image
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_oled --upload-port COM6
+
+# Dual-display parity build (mirrors LCD + OLED)
+& $env:USERPROFILE\.platformio\penv\Scripts\pio.exe run -t upload -e nano168_dual --upload-port COM6
 ```
 
 **Serial monitors reset the Nano:** Wait 2–3 seconds after opening a port before sending bytes, and keep the connection open a few seconds so the LCD state is observable. This applies to the manual smoke scripts and any host tooling.
@@ -74,6 +82,7 @@ We build with PlatformIO (VS Code extension or CLI). On Windows the CLI lives un
 ## Firmware Behavior
 - `display_startup_screen()` centers the banner and holds it until `serial_read()` receives the first byte.
 - Host commands mirror lcdproc’s los-panel driver: `0xFE` for commands, `0xFD` for backlight, raw ASCII otherwise.
+- OLED and dual builds route `0xFE` traffic through an HD44780 command translator so DDRAM cursor moves and CGRAM uploads behave like the glass-panel baseline.
 - Backlight PWM currently maps duty cycle directly to `analogWrite(D11, level)`. `FEATURE-20260102-backlight-calibration` tracks improvements so `FD 00/80/FF` give wider visual spread.
 
 ## Display Modes
@@ -95,6 +104,9 @@ All benches should run the checklist in `docs/display_smoke_tests.md`. Highlight
 
 Capture PASS/FAIL in commits or AGENT_STORE entries so everyone knows which hardware was exercised.
 
+## Host Demo Scripts
+- `scripts/pc_clock.py` - PC-side clock demo that uploads custom chars and renders a centered big-digit `HH:MM` with a 1 Hz blinking colon (useful for dual-display parity checks).
+
 ---
 
 ## Backlog & Collaboration
@@ -113,9 +125,10 @@ Active “next up” items (see `AGENT_STORE/FEATURES/PRIORITY.md`):
 ---
 
 ## Resources
-- `docs/lcdproc_display_mapping.md` – Byte-level mapping between los-panel commands and firmware actions.
-- `docs/display_smoke_tests.md` – Repro scripts for T1–T8 scenarios.
-- `resources/LCDd.conf` – Sample lcdproc configuration targeting this firmware.
+- `docs/lcdproc_display_mapping.md` - Byte-level mapping between los-panel commands and firmware actions.
+- `docs/display_smoke_tests.md` - Repro scripts for T1-T8 scenarios.
+- `docs/oled_i2c_setup.md` - SSD1306 wiring + environment/config walkthrough.
+- `resources/LCDd.conf` - Sample lcdproc configuration targeting this firmware.
 - Photo references live under `resources/` for enclosure ideas.
 
 Questions? Open an issue/feature ticket in `AGENT_STORE/`, mention which hardware you tested on (Uno, Nano 328, Nano 168), and link relevant smoke-test runs. Contributions that keep the backlog updated and the manual tests green are easiest to review and merge.

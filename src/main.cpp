@@ -6,10 +6,21 @@
 
 #include <DisplayConfig.h>
 
+#include "SerialDebug.h"
 #include "display/display_factory.h"
 
 #if DISPLAY_BACKEND != HD44780
-#error "Only the HD44780 backend is implemented; update the firmware before selecting another backend."
+#include "display/Hd44780CommandTranslator.h"
+#endif
+
+#if DISPLAY_BACKEND != HD44780 && DISPLAY_BACKEND != OLED && DISPLAY_BACKEND != DUAL
+#error "Unknown DISPLAY_BACKEND selected; update the firmware or config."
+#endif
+
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
+#define DEBUG_LOG(msg) SerialDebug::line(true, F(msg))
+#else
+#define DEBUG_LOG(msg) do {} while (0)
 #endif
 
 byte cmd; //will hold our sent command
@@ -17,6 +28,147 @@ byte cmd; //will hold our sent command
 static IDisplay &display = getDisplay();
 static bool host_active = false;
 static bool startup_screen_visible = false;
+static bool pending_host_active_report = false;
+static uint8_t streaming_mode = STREAMING_MODE_DEFAULT;
+static bool pending_streaming_mode_report = false;
+#if ENABLE_SERIAL_DEBUG
+static uint32_t last_rx_micros = 0;
+static constexpr uint32_t HOST_IDLE_BEFORE_LOG_US = 20000; // 20ms of quiet = burst finished at 57,600 bps
+static uint16_t rx_bytes_total = 0;
+static uint16_t rx_bytes_since_boot = 0;
+#endif
+
+#if ENABLE_SERIAL_DEBUG
+static void emit_boot_diagnostics();
+static void maybe_enable_serial_debug_when_idle() {
+	// If a previous burst left SerialDebug muted, re-enable it once the RX line
+	// has been quiet long enough that printing won't cause an overrun.
+	if (!host_active) {
+		return;
+	}
+	if (SerialDebug::isRuntimeEnabled()) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+	SerialDebug::setRuntimeEnabled(true);
+}
+
+static void maybe_emit_host_active_report() {
+	// Once the host stream has gone idle, emit the "host active" banner and
+	// boot diagnostics (and re-enable verbose logging) without risking RX loss.
+	if (!pending_host_active_report) {
+		return;
+	}
+	// Ignore tiny "meta" bursts (e.g., streaming-mode toggles) so this banner
+	// (and byte counters) reflect the first real payload burst.
+	if (rx_bytes_since_boot < 16) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+
+	SerialDebug::setRuntimeEnabled(true);
+	Serial.println(F("raw: host active"));
+	SerialDebug::kv(true, F("rx.bytes_total"), rx_bytes_total);
+	SerialDebug::kv(true, F("rx.bytes_since_boot"), rx_bytes_since_boot);
+	emit_boot_diagnostics();
+	SerialDebug::line(true, F("serial_debug: host active"));
+	pending_host_active_report = false;
+}
+#endif
+
+static void apply_streaming_mode(bool announce_if_changed) {
+	const bool safe = streaming_mode == STREAMING_MODE_SAFE;
+	setDualQueueingEnabled(safe);
+	if (announce_if_changed) {
+		pending_streaming_mode_report = true;
+	}
+}
+
+#if ENABLE_SERIAL_DEBUG
+static void maybe_emit_streaming_mode_report() {
+	if (!pending_streaming_mode_report) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+	SerialDebug::setRuntimeEnabled(true);
+	SerialDebug::printPrefix();
+	Serial.print(F("mode.streaming="));
+	Serial.println(streaming_mode == STREAMING_MODE_SAFE ? F("safe") : F("immediate"));
+	pending_streaming_mode_report = false;
+}
+#endif
+
+#if DISPLAY_BACKEND != HD44780
+static Hd44780CommandTranslator command_translator(display);
+#endif
+
+#if ENABLE_SERIAL_DEBUG
+static constexpr uint16_t SERIAL_WAIT_LOG_THRESHOLD_US = 500;
+static constexpr uint8_t SERIAL_BACKLOG_LOW_WATER = 8;
+
+static int16_t free_sram() {
+	extern char __heap_start;
+	extern char *__brkval;
+	char stack_top;
+	char *heap_end = __brkval ? __brkval : &__heap_start;
+	return static_cast<int16_t>(&stack_top - heap_end);
+}
+
+static uint32_t compute_i2c_clock_hz() {
+	const uint8_t twps = static_cast<uint8_t>(TWSR & ((1 << TWPS0) | (1 << TWPS1)));
+	uint16_t prescaler = 1;
+	if (twps == 1) {
+		prescaler = 4;
+	} else if (twps == 2) {
+		prescaler = 16;
+	} else if (twps == 3) {
+		prescaler = 64;
+	}
+	const uint32_t denominator = static_cast<uint32_t>(16UL + (2UL * TWBR * prescaler));
+	return denominator == 0 ? 0 : static_cast<uint32_t>(F_CPU / denominator);
+}
+
+struct BootDiagnostics {
+	uint32_t display_begin_us;
+	int16_t free_sram_bytes;
+	uint32_t i2c_clock_hz;
+	bool captured;
+};
+
+static BootDiagnostics boot_diagnostics = {0, 0, 0, false};
+
+static void capture_boot_diagnostics(uint32_t display_begin_us) {
+	boot_diagnostics.display_begin_us = display_begin_us;
+	boot_diagnostics.free_sram_bytes = free_sram();
+	boot_diagnostics.i2c_clock_hz = compute_i2c_clock_hz();
+	boot_diagnostics.captured = true;
+}
+
+static void emit_boot_diagnostics() {
+	if (!boot_diagnostics.captured) {
+		return;
+	}
+	SerialDebug::kv(true, F("display.begin.us"), boot_diagnostics.display_begin_us);
+	SerialDebug::kv(true, F("free_sram.bytes"), boot_diagnostics.free_sram_bytes);
+	SerialDebug::kv(true, F("i2c.clock.hz"), boot_diagnostics.i2c_clock_hz);
+	boot_diagnostics.captured = false;
+}
+#endif
 
 static void write_centered_line(const char *text, uint8_t row) {
 	if (!text || row >= LCDH) {
@@ -60,23 +212,108 @@ static void dismiss_startup_screen() {
 }
 
 void setup() {
-	// set up the LCD's number of columns and rows:
-	display.begin(LCDW, LCDH);
-	display.setBacklight(STARTUP_BRIGHTNESS);
-	// set up serial
 	Serial.begin(BAUDRATE);
-	display.display();
-	display_startup_screen();
 
+	Serial.print(F("ENABLE_SERIAL_DEBUG:"));
+	Serial.println(ENABLE_SERIAL_DEBUG);
+
+	Serial.print(F("ENABLE_VERBOSE_DEBUG_LOGS:"));
+	Serial.println(ENABLE_VERBOSE_DEBUG_LOGS);	
+
+#if ENABLE_SERIAL_DEBUG
+	SerialDebug::setRuntimeEnabled(true);
+	Serial.println(F("debug: instrumentation armed"));
+#endif
+	setDualQueueingEnabled(false);
+	DEBUG_LOG("setup: serial online");
+	// set up the LCD's number of columns and rows:
+	DEBUG_LOG("setup: display.begin");
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t display_begin_start = micros();
+#endif
+	display.begin(LCDW, LCDH);
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t display_begin_duration = micros() - display_begin_start;
+#endif
+	DEBUG_LOG("setup: display.begin complete");
+#if ENABLE_SERIAL_DEBUG
+	capture_boot_diagnostics(display_begin_duration);
+#endif
+	display.setBacklight(STARTUP_BRIGHTNESS);
+	DEBUG_LOG("setup: backlight set");
+	display.display();
+	DEBUG_LOG("setup: display() called");
+#if DISPLAY_BACKEND != HD44780
+	command_translator.reset();
+#endif
+	display_startup_screen();
+	DEBUG_LOG("setup: startup banner drawn");
+#if ENABLE_SERIAL_DEBUG
+	Serial.print(F("debug: free_sram.after_banner="));
+	Serial.println(free_sram());
+#endif
+	// Ensure any deferred OLED bytes drain before we start servicing the host.
+	serviceDisplayIdleWork();
 }
 
 int serial_read() {
 	int result = -1;
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t wait_start = micros();
+	uint16_t spins = 0;
+#endif
 	while(result == -1) {
 		if(Serial.available() > 0) {
 			result = Serial.read();
+#if ENABLE_SERIAL_DEBUG
+			++rx_bytes_total;
+			++rx_bytes_since_boot;
+			last_rx_micros = micros();
+			// Always suppress debug logging while bytes are actively arriving.
+			// Otherwise a prior idle-triggered banner (e.g., after a short meta
+			// command) can leave logging enabled during the next burst and cause
+			// us to overrun RX again.
+			if (host_active) {
+				SerialDebug::setRuntimeEnabled(false);
+			}
+#endif
 		}
+#if ENABLE_SERIAL_DEBUG
+		else {
+			maybe_enable_serial_debug_when_idle();
+			maybe_emit_host_active_report();
+			maybe_emit_streaming_mode_report();
+			// Only run deferred display work once the RX stream has been quiet long
+			// enough that we won't overflow the UART RX buffer. Running I2C/LCD
+			// refresh work in the tiny gaps between bytes can block long enough to
+			// drop the tail of unpaced bursts (especially after short meta commands).
+			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
+				serviceDisplayIdleWork();
+			}
+			++spins;
+		}
+#else
+		else {
+			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
+				serviceDisplayIdleWork();
+			}
+		}
+#endif
 	}
+#if ENABLE_SERIAL_DEBUG
+	const uint32_t wait_us = micros() - wait_start;
+	const int backlog = Serial.available();
+	if (SerialDebug::isRuntimeEnabled() &&
+	    (wait_us > SERIAL_WAIT_LOG_THRESHOLD_US || backlog < SERIAL_BACKLOG_LOW_WATER)) {
+		SerialDebug::printPrefix();
+		Serial.print(F("serial.byte wait_us="));
+		Serial.print(wait_us);
+		Serial.print(F(" spins="));
+		Serial.print(spins);
+		Serial.print(F(" backlog="));
+		Serial.println(backlog);
+	}
+#endif
 	return result;
 }
 
@@ -106,11 +343,41 @@ void loop() {
 	cmd = serial_read();
 	if (!host_active) {
 		host_active = true;
+#if ENABLE_SERIAL_DEBUG
+		// Important: do not emit verbose serial logs while the host may still be
+		// streaming a burst, otherwise we can block long enough to overrun the
+		// UART RX buffer and lose the tail bytes we are trying to process.
+		SerialDebug::setRuntimeEnabled(false);
+		rx_bytes_since_boot = 0;
+		pending_host_active_report = true;
+#else
+		SerialDebug::setRuntimeEnabled(true);
+#endif
+		apply_streaming_mode(false);
 		dismiss_startup_screen();
 	}
+	// Note: host-active reporting is emitted from the `serial_read()` idle loop
+	// so we still report even when the host stops sending bytes.
 	switch(cmd) {
+			case 0xFC: {
+				// ArduLCDpp meta/control prefix (reserved).
+				const uint8_t subcmd = static_cast<uint8_t>(serial_read());
+				if (subcmd == 0x10) { // SET_STREAMING_MODE
+					const uint8_t mode = static_cast<uint8_t>(serial_read());
+					const uint8_t normalized = mode ? STREAMING_MODE_SAFE : STREAMING_MODE_IMMEDIATE;
+					if (streaming_mode != normalized) {
+						streaming_mode = normalized;
+						apply_streaming_mode(true);
+					}
+				}
+				break;
+			}
 			case 0xFE:
+#if DISPLAY_BACKEND == HD44780
 				display.command(serial_read());
+#else
+				command_translator.handleCommand(static_cast<uint8_t>(serial_read()));
+#endif
 				break;
 			case 0xFD:
 				// backlight control
@@ -118,7 +385,14 @@ void loop() {
 				break;
 			default:
 				// By default we write to the LCD
+#if DISPLAY_BACKEND == HD44780
 				display.write(cmd);
+#else
+				if (!command_translator.handleData(cmd)) {
+					display.write(cmd);
+				}
+#endif
 				break;
 	}
+	serviceDisplayIdleWork();
 }

@@ -28,3 +28,4 @@ The "product" is a los-panel bridge, so documentation is part of the user experi
 
 # Validation Notes
 - Have a teammate (or future self) run through the instructions once to confirm no missing steps.
+- 2026-01-07: Added `docs/oled_i2c_setup.md` (wiring + environment/config walkthrough) and linked it from `README.md`.

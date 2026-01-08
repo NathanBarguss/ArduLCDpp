@@ -2,7 +2,7 @@
 Publish a smoke-test matrix and simple demo scripts covering the HD44780 build, the OLED build, and the dual-display parity mode to prevent regressions as new display sizes are added.
 
 # Background
-With multiple display targets (and now a mode that drives both simultaneously), manual spot checks are easy to forget. A repeatable checklist (even if manual) ensures parity for cursor bounds, custom glyphs, backlight, and USB serial stability—plus a dedicated column that calls out when the LCD and OLED disagree while running the dual firmware.
+With multiple display targets (and now a mode that drives both simultaneously), manual spot checks are easy to forget. A repeatable checklist (even if manual) ensures parity for cursor bounds, custom glyphs, backlight, and USB serial stability - plus a dedicated column that calls out when the LCD and OLED disagree while running the dual firmware.
 
 # Requirements
 - Create a test plan document (e.g., `/docs/display_smoke_tests.md`) enumerating cases: clear/home/setCursor bounds, full-screen fills, custom chars 0-7, backlight/brightness toggles, and USB serial connect/disconnect behavior.
@@ -25,4 +25,4 @@ With multiple display targets (and now a mode that drives both simultaneously), 
 
 # Validation Notes
 - Run through the checklist once on each build mode and note any timing issues or missing instrumentation.
-- 2025-12-23: Authored `docs/display_smoke_tests.md` with byte-level procedures for T1-T8; OLED column remains blocked until that backend lands, and the dual column will be populated once FEATURE-20260104-dual-display-parity ships.
+- 2026-01-07: Updated `docs/display_smoke_tests.md` to include expected outcomes for OLED + Dual (including burst-safe "lag then catch up" behavior in `nano168_dual_serial`) and a pointer to `scripts/t4_with_logs.py` for repeatable T4/T8 burst runs.

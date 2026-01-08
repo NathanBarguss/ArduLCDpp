@@ -1,4 +1,4 @@
-﻿# AGENTS
+# AGENTS
 
 ## Interaction Protocol
 - At the start of every chat, ask: "Which role should I operate as: DEV, QA, or UX?" and wait for the answer before proceeding.
@@ -30,11 +30,11 @@
 - **MCU:** Arduino Nano (ATmega328P by default; ATmega168 board also present in the lab). Always confirm with the user which Nano/bootloader is connected before flashing so the correct PlatformIO environment is selected. Current environments:
   - `uno_hd44780` / `mega2560_hd44780` for dev builds.
   - `nano_hd44780` for ATmega328P Nanos (new bootloader).
-  - `nano168_hd44780` for ATmega168 units—use this when uploads only succeed after switching boards in PlatformIO.
+  - `nano168_hd44780` for ATmega168 units-use this when uploads only succeed after switching boards in PlatformIO.
 - **HD44780 character LCD:** 8-bit parallel, RW tied low, backlight driven through a BC337 low-side transistor from Arduino D11 (PWM). See pin map below.
-- **OLED fallback:** SSD1306 I²C module (128×32 tested, 128×64 expected). Connected via I²C plus optional reset.
+- **OLED fallback:** SSD1306 I2C module (128x32 tested, 128x64 expected). Connected via I2C plus optional reset.
 - **Display modes:** Firmware supports LCD-only, OLED-only, and the new dual-display parity build that mirrors every command to both panels so UX can compare them live. Keep both panels wired during bench runs, and update any backlog entries created before 2026-01-04 if they still assume "only one display per build."
-- **Power/decoupling:** LCD logic runs off Nano 5 V pin with 100 nF decoupling near the module and an optional 10 µF bulk capacitor. OLED power depends on the breakout (5 V or 3.3 V).
+- **Power/decoupling:** LCD logic runs off Nano 5 V pin with 100 nF decoupling near the module and an optional 10 uF bulk capacitor. OLED power depends on the breakout (5 V or 3.3 V).
 - **Design assumptions:** The HD44780 busy flag is never read (write-only workflow), and USB provides the development power source.
 
 ### HD44780 Wiring (8-bit mode, write-only)
@@ -56,15 +56,15 @@
 | GND          | 1       | VSS           |
 | Pot wiper    | 3       | VO (contrast) |
 
-> **CRITICAL:** Always tweak the VO contrast trimmer when a “blank” screen is reported. The firmware may be running fine, but without the correct contrast level the welcome banner is invisible. Check contrast before assuming a hardware or code fault.
+> **CRITICAL:** Always tweak the VO contrast trimmer when a "blank" screen is reported. The firmware may be running fine, but without the correct contrast level the welcome banner is invisible. Check contrast before assuming a hardware or code fault.
 
 **Backlight wiring**
-- LCD LED+ (pin 15) → +5 V
-- LCD LED− (pin 16) → BC337 collector
-- BC337 emitter → GND
-- Arduino D11 (PWM) → BC337 base via ~1 kΩ–4.7 kΩ resistor
+- LCD LED+ (pin 15) -> +5 V
+- LCD LED- (pin 16) -> BC337 collector
+- BC337 emitter -> GND
+- Arduino D11 (PWM) -> BC337 base via ~1 kΩ–4.7 kΩ resistor
 
-### SSD1306 OLED Wiring (I²C)
+### SSD1306 OLED Wiring (I2C)
 
 | Arduino Nano | OLED Pin |
 |--------------|----------|
@@ -78,5 +78,7 @@
 
 **Hardware change protocol**
 - Before running hardware tests or smoke suites, ask the user which board is attached (Uno, Nano 328, Nano 168, etc.) and update the PlatformIO environment accordingly.
-- If the connected board differs from the previous session, note the change in your status update so other agents know which `platformio.ini` env to use and why (e.g., “Nano168 prototype requires `nano168_hd44780` because uploads to 328 targets fail to sync”).
-- Serial consoles toggle DTR, which resets the Nano automatically. Wait 2–3 seconds after opening the port before sending bytes, and leave the port open a few seconds post-write so the LCD stays in the test state long enough for verification.
+- If the connected board differs from the previous session, note the change in your status update so other agents know which `platformio.ini` env to use and why (e.g., "Nano168 prototype requires `nano168_hd44780` because uploads to 328 targets fail to sync").
+- Serial consoles toggle DTR, which resets the Nano automatically. Wait 2-3 seconds after opening the port before sending bytes, and leave the port open a few seconds post-write so the LCD stays in the test state long enough for verification.
+- For burst tests (T4/T8), the firmware defers display refresh until the RX stream has been idle for ~20ms to prevent UART overruns.
+

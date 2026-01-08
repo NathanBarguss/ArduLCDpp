@@ -38,7 +38,8 @@ No `createChar`, `setCursor`, `scrollDisplay*`, or `blink/cursor` helpers are ca
 - Startup brightness defaults to `STARTUP_BRIGHTNESS` (currently `2`) until LCDproc overrides it.
 
 ## Custom Characters & CGRAM
-- Firmware never calls `lcd.createChar`; LCDproc must push custom glyph bitmaps itself via the `0xFE` command path. Any backend replacement must therefore support `command()` dispatches for CGRAM writes.
+- LCDproc pushes custom glyph bitmaps via the `0xFE` command path (CGRAM programming opcodes + 8 bytes per slot row).
+- In OLED and dual builds, those CGRAM writes are intercepted and translated into `IDisplay::createChar(slot, bitmap)` updates so lcd2oled can render glyph slots 0-7.
 
 ## Error Handling & Edge Cases
 - Serial parsing blocks until data arrives; there is no timeout.
