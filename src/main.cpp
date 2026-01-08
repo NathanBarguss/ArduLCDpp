@@ -40,6 +40,24 @@ static uint16_t rx_bytes_since_boot = 0;
 
 #if ENABLE_SERIAL_DEBUG
 static void emit_boot_diagnostics();
+static void maybe_enable_serial_debug_when_idle() {
+	// If a previous burst left SerialDebug muted, re-enable it once the RX line
+	// has been quiet long enough that printing won't cause an overrun.
+	if (!host_active) {
+		return;
+	}
+	if (SerialDebug::isRuntimeEnabled()) {
+		return;
+	}
+	if (Serial.available() != 0) {
+		return;
+	}
+	if ((micros() - last_rx_micros) <= HOST_IDLE_BEFORE_LOG_US) {
+		return;
+	}
+	SerialDebug::setRuntimeEnabled(true);
+}
+
 static void maybe_emit_host_active_report() {
 	// Once the host stream has gone idle, emit the "host active" banner and
 	// boot diagnostics (and re-enable verbose logging) without risking RX loss.
@@ -246,10 +264,18 @@ int serial_read() {
 			++rx_bytes_total;
 			++rx_bytes_since_boot;
 			last_rx_micros = micros();
+			// Always suppress debug logging while bytes are actively arriving.
+			// Otherwise a prior idle-triggered banner (e.g., after a short meta
+			// command) can leave logging enabled during the next burst and cause
+			// us to overrun RX again.
+			if (host_active) {
+				SerialDebug::setRuntimeEnabled(false);
+			}
 #endif
 		}
 #if ENABLE_SERIAL_DEBUG
 		else {
+			maybe_enable_serial_debug_when_idle();
 			maybe_emit_host_active_report();
 			maybe_emit_streaming_mode_report();
 			serviceDisplayIdleWork();
