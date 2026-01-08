@@ -64,6 +64,11 @@ static void maybe_emit_host_active_report() {
 	if (!pending_host_active_report) {
 		return;
 	}
+	// Ignore tiny "meta" bursts (e.g., streaming-mode toggles) so this banner
+	// (and byte counters) reflect the first real payload burst.
+	if (rx_bytes_since_boot < 16) {
+		return;
+	}
 	if (Serial.available() != 0) {
 		return;
 	}
@@ -278,12 +283,20 @@ int serial_read() {
 			maybe_enable_serial_debug_when_idle();
 			maybe_emit_host_active_report();
 			maybe_emit_streaming_mode_report();
-			serviceDisplayIdleWork();
+			// Only run deferred display work once the RX stream has been quiet long
+			// enough that we won't overflow the UART RX buffer. Running I2C/LCD
+			// refresh work in the tiny gaps between bytes can block long enough to
+			// drop the tail of unpaced bursts (especially after short meta commands).
+			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
+				serviceDisplayIdleWork();
+			}
 			++spins;
 		}
 #else
 		else {
-			serviceDisplayIdleWork();
+			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
+				serviceDisplayIdleWork();
+			}
 		}
 #endif
 	}

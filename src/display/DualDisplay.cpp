@@ -64,7 +64,7 @@ void DualDisplay::clear() {
 	cursor_column_ = 0;
 	cursor_row_ = 0;
 	memset(shadow_, ' ', sizeof(shadow_));
-	dirty_rows_mask_ = 0x0F;
+	dirty_rows_mask_ = queue_enabled_ ? 0x0F : 0;
 
 	if (!queue_enabled_) {
 		primary_.clear();
@@ -149,7 +149,7 @@ size_t DualDisplay::write(uint8_t value) {
 		if (index < sizeof(shadow_)) {
 			shadow_[index] = static_cast<char>(value);
 		}
-		if (cursor_row_ < 8) {
+		if (queue_enabled_ && cursor_row_ < 8) {
 			dirty_rows_mask_ |= static_cast<uint8_t>(1U << cursor_row_);
 		}
 	}
