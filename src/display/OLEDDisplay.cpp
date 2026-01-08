@@ -3,11 +3,33 @@
 OLEDDisplay::OLEDDisplay(uint8_t resetPin, uint8_t i2cAddress)
     : oled_(resetPin), i2cAddress_(i2cAddress) {}
 
+uint8_t OLEDDisplay::clampColumn(uint8_t column) const {
+	if (columns_ == 0) {
+		return 0;
+	}
+	if (column >= columns_) {
+		return static_cast<uint8_t>(columns_ - 1);
+	}
+	return column;
+}
+
+uint8_t OLEDDisplay::clampRow(uint8_t row) const {
+	if (rows_ == 0) {
+		return 0;
+	}
+	if (row >= rows_) {
+		return static_cast<uint8_t>(rows_ - 1);
+	}
+	return row;
+}
+
 void OLEDDisplay::begin(uint8_t width, uint8_t height) {
 	Serial.println(F("oled: begin entry"));
 	oled_.SetAddress(i2cAddress_);
 	Serial.println(F("oled: address set"));
-	oled_.begin(width, height);
+	columns_ = width;
+	rows_ = height;
+	oled_.begin(columns_, rows_);
 	Serial.println(F("oled: driver begin done"));
 	oled_.home();
 	Serial.println(F("oled: home done"));
@@ -26,7 +48,7 @@ void OLEDDisplay::display() {
 }
 
 void OLEDDisplay::setCursor(uint8_t column, uint8_t row) {
-	oled_.setCursor(column, row);
+	oled_.setCursor(clampColumn(column), clampRow(row));
 }
 
 size_t OLEDDisplay::write(uint8_t value) {

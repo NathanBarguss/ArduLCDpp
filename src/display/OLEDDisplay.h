@@ -23,7 +23,11 @@ public:
 	void setBacklight(uint8_t level) override;
 
 private:
+	uint8_t clampColumn(uint8_t column) const;
+	uint8_t clampRow(uint8_t row) const;
+
 	lcd2oled oled_;
 	uint8_t i2cAddress_;
+	uint8_t columns_ = LCDW;
+	uint8_t rows_ = LCDH;
 };
-

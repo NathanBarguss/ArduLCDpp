@@ -13,6 +13,7 @@ Hd44780CommandTranslator::Hd44780CommandTranslator(IDisplay &display)
 void Hd44780CommandTranslator::reset() {
 	display_cursor_row_ = 0;
 	display_cursor_column_ = 0;
+	force_set_cursor_ = false;
 	increment_ = true;
 	shift_on_write_ = false;
 	display_enabled_ = true;
@@ -84,8 +85,14 @@ bool Hd44780CommandTranslator::handleData(uint8_t value) {
 	}
 	display_.write(value);
 	advanceDdramAddress();
-	display_cursor_row_ = logical_row_;
-	display_cursor_column_ = logical_column_;
+	if (force_set_cursor_) {
+		display_cursor_row_ = 0xFF;
+		display_cursor_column_ = 0xFF;
+		force_set_cursor_ = false;
+	} else {
+		display_cursor_row_ = logical_row_;
+		display_cursor_column_ = logical_column_;
+	}
 #if ENABLE_SERIAL_DEBUG
 	if (SerialDebug::isRuntimeEnabled()) {
 		const int16_t delta = static_cast<int16_t>(static_cast<int8_t>(ddram_address_) -
@@ -266,6 +273,7 @@ void Hd44780CommandTranslator::advanceDdramAddress() {
 			} else {
 				--logical_row_;
 			}
+			force_set_cursor_ = true;
 		} else {
 			--logical_column_;
 		}
@@ -277,6 +285,7 @@ void Hd44780CommandTranslator::advanceDdramAddress() {
 	if (logical_column_ >= LCDW) {
 		logical_column_ = 0;
 		logical_row_ = static_cast<uint8_t>((logical_row_ + 1) % LCDH);
+		force_set_cursor_ = true;
 	}
 	ddram_address_ = encodeDdramAddress(logical_row_, logical_column_);
 }
