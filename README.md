@@ -104,6 +104,9 @@ All benches should run the checklist in `docs/display_smoke_tests.md`. Highlight
 
 Capture PASS/FAIL in commits or AGENT_STORE entries so everyone knows which hardware was exercised.
 
+## Host Demo Scripts
+- `scripts/pc_clock.py` - PC-side clock demo that uploads custom chars and renders a centered big-digit `HH:MM` with a 1 Hz blinking colon (useful for dual-display parity checks).
+
 ---
 
 ## Backlog & Collaboration
