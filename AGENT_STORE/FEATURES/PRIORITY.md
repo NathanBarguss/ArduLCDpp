@@ -8,15 +8,15 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 ## Phase 2 - OLED Bring-up
 1. **FEATURE-20251223-oled-backend** - Vendor `lcd2oled` into `lib/` and stand up `OLEDDisplay` using the new interface. No los-panel logic changes yet; this just proves we can talk to the panel.
 2. **FEATURE-20251223-oled-command-translator** - lcd2oled lacks `command()`, so intercept `0xFE` traffic and emit equivalent interface calls. Without this layer LCDproc cannot control cursors, clears, or CGRAM.
-3. **FEATURE-20251223-cgram-shim** - Extend the translator so CGRAM writes become `createChar()` calls; prerequisite for bargraph/icon fidelity.
+3. **FEATURE-20251223-cgram-shim** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-cgram-shim.md`. CGRAM writes translate into `createChar()` parity on OLED/Dual.
 4. **FEATURE-20251223-custom-char-parity** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-custom-char-parity.md`. T5 custom glyph parity validated on LCD/OLED/Dual (including burst-safe queueing).
-5. **FEATURE-20251223-oled-geometry** - Lock the logical window to the firmware geometry (`LCDW` x `LCDH`) and clamp coordinates so LCDproc layouts behave the same on LCD and OLED.
+5. **FEATURE-20251223-oled-geometry** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-oled-geometry.md`. OLED clamps to `LCDW` x `LCDH` and matches DDRAM addressing.
 6. **FEATURE-20251223-oled-backlight** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-oled-backlight.md`. `0xFD` now maps to SSD1306 contrast with a visible floor.
 7. **FEATURE-20251223-oled-performance** - Patch lcd2oled `clear()` for 128x32 panels and address any flicker from rapid updates after the core features work.
 
 ## Phase 3 - Build Selection & Validation
-1. **FEATURE-20251223-backend-config-switch** - With both backends functional, add the compile-time selector plus default macros so we can create LCD-only, OLED-only, and dual builds deterministically.
-2. **FEATURE-20260104-dual-display-parity** - Stand up the mirrored output mode so UX/QA can evaluate LCD vs OLED parity without reflashing between tests.
+1. **FEATURE-20251223-backend-config-switch** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-backend-config-switch.md`. `DISPLAY_BACKEND` selects LCD/OLED/Dual via PlatformIO envs.
+2. **FEATURE-20260104-dual-display-parity** - Resolved; see `FEATURES/RESOLVED/FEATURE-20260104-dual-display-parity.md`. Dual build validated with T1–T8 on bench.
 3. **FEATURE-20251223-smoke-test-matrix** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-smoke-test-matrix.md`. Captures the dual-backend (and dual-mode) checklist and references `docs/display_smoke_tests.md` + `scripts/t4_with_logs.py`.
 4. **FEATURE-20251223-oled-docs** - Resolved; see `FEATURES/RESOLVED/FEATURE-20251223-oled-docs.md`. Adds `docs/oled_i2c_setup.md` and README links for SSD1306 bring-up.
 
