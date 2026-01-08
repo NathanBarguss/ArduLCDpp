@@ -69,3 +69,6 @@ We want to expose this tradeoff as an explicit UX mode so bench users can choose
 - `Immediate` mode:
   - Intended for UX comparison under paced host traffic; unpaced bursts may drop bytes (documented/acceptable), but must not reset.
   - Unpaced T8: no resets observed in capture window (drops allowed).
+
+## Notes (2026-01-08)
+- Hardened burst-safe behavior when switching modes right before a burst: deferred display work now runs only after the RX stream has been idle for ~20ms, so `FC 10 <mode>` followed by T4/T8 no longer risks dropping the tail bytes on Nano168.

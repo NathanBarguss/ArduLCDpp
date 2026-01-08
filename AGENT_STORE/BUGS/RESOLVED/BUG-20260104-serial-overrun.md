@@ -58,3 +58,18 @@ Resolved (2026-01-07): Unpaced host bursts (T4/T8 los-panel traffic) could drop 
   - `rx.bytes_total=84`, no resets, both displays end in 4 full rows (OLED fills after idle refresh).
 - PASS (2026-01-07) T8: `python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t8`
   - `rx.bytes_total=1024`, no resets, both displays end in parity.
+
+## Addendum (2026-01-08): Meta Command + Burst Tail Drop Regression
+When the host sent the 3-byte streaming-mode meta command (`FC 10 <mode>`) immediately before an unpaced T4 burst, the Nano168 could again drop the tail bytes. Symptoms matched "row 2 missing last char, row 3 blank" even though the mitigation existed.
+
+Root cause:
+- `serial_read()` was calling `serviceDisplayIdleWork()` any time `Serial.available()==0` (including tiny gaps between incoming bytes).
+- Those gaps exist between the `FC 10` bytes and the subsequent burst.
+- Running deferred I2C/LCD refresh work in the gaps can block long enough to overflow the 64-byte UART RX buffer, dropping the tail of the burst.
+
+Fix:
+- Gate `serviceDisplayIdleWork()` so it only runs after the RX stream has been idle for `HOST_IDLE_BEFORE_LOG_US` (~20ms).
+- Do not mark `DualDisplay` dirty rows while queueing is disabled (prevents stale "work debt" from being scheduled when queueing is later enabled).
+
+Bench verification (COM6, Nano168 dual):
+- PASS T4 with `--streaming safe`: both LCD and OLED show 4 full rows of Z after idle catch-up.

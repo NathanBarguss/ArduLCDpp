@@ -50,6 +50,8 @@ python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --t
 python scripts/t4_with_logs.py --port COM6 --delay 3 --capture 8 --fill 0x5A --test t8
 ```
 
+Note: if you pass `--streaming safe|immediate`, the harness sends a 3-byte meta command (`FC 10 <mode>`) before the payload. Any `rx.bytes_*` counters will include those meta bytes in addition to the T4/T8 payload.
+
 ## Test Matrix
 
 | ID | Scenario | Procedure | Expected (HD44780) | Expected (OLED) | Expected (Dual) | Notes |

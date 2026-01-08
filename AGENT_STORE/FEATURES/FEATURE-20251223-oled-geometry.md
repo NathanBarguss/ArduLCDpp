@@ -26,3 +26,8 @@ lcd2oled lets us define the logical rows/columns via `begin(width, height)`, eve
 # Validation Notes
 - Use LCDproc demo screens that exercise writes to all rows and columns, watching for wraparound.
 - Capture photos/screenshots proving all four logical rows render correctly.
+
+## Notes (2026-01-08)
+- QA validation (Dual, COM6):
+  - T3 cursor sweep filled all 4 rows correctly on both LCD and OLED (20x4 parity).
+  - T4 full-screen fill now reliably fills all 4 rows even when preceded by `FC 10 <mode>` (streaming mode toggle).
