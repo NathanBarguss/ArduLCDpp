@@ -8,6 +8,8 @@
 
 #include "SerialDebug.h"
 #include "display/display_factory.h"
+#include "protocol/MatrixOrbitalParser.h"
+#include "protocol/ProtocolRouter.h"
 
 #if DISPLAY_BACKEND != HD44780
 #include "display/Hd44780CommandTranslator.h"
@@ -28,18 +30,30 @@ byte cmd; //will hold our sent command
 static IDisplay &display = getDisplay();
 static bool host_active = false;
 static bool startup_screen_visible = false;
-static bool pending_host_active_report = false;
 static uint8_t streaming_mode = STREAMING_MODE_DEFAULT;
-static bool pending_streaming_mode_report = false;
+
 #if ENABLE_SERIAL_DEBUG
+static bool pending_host_active_report = false;
+static bool pending_streaming_mode_report = false;
+#endif
+
+// Always track host idleness (even when verbose serial logging is compiled out),
+// so burst-safe display refresh and protocol session reset work consistently.
 static uint32_t last_rx_micros = 0;
 static constexpr uint32_t HOST_IDLE_BEFORE_LOG_US = 20000; // 20ms of quiet = burst finished at 57,600 bps
+
+#if ENABLE_SERIAL_DEBUG
 static uint16_t rx_bytes_total = 0;
 static uint16_t rx_bytes_since_boot = 0;
 #endif
 
+static ProtocolRouter protocol_router;
+static MatrixOrbitalParser matrix_orbital_parser(display);
+
 #if ENABLE_SERIAL_DEBUG
+#if ENABLE_VERBOSE_DEBUG_LOGS
 static void emit_boot_diagnostics();
+#endif
 static void maybe_enable_serial_debug_when_idle() {
 	// If a previous burst left SerialDebug muted, re-enable it once the RX line
 	// has been quiet long enough that printing won't cause an overrun.
@@ -78,10 +92,12 @@ static void maybe_emit_host_active_report() {
 
 	SerialDebug::setRuntimeEnabled(true);
 	Serial.println(F("raw: host active"));
+#if ENABLE_VERBOSE_DEBUG_LOGS
 	SerialDebug::kv(true, F("rx.bytes_total"), rx_bytes_total);
 	SerialDebug::kv(true, F("rx.bytes_since_boot"), rx_bytes_since_boot);
 	emit_boot_diagnostics();
 	SerialDebug::line(true, F("serial_debug: host active"));
+#endif
 	pending_host_active_report = false;
 }
 #endif
@@ -90,7 +106,9 @@ static void apply_streaming_mode(bool announce_if_changed) {
 	const bool safe = streaming_mode == STREAMING_MODE_SAFE;
 	setDualQueueingEnabled(safe);
 	if (announce_if_changed) {
+#if ENABLE_SERIAL_DEBUG
 		pending_streaming_mode_report = true;
+#endif
 	}
 }
 
@@ -117,7 +135,21 @@ static void maybe_emit_streaming_mode_report() {
 static Hd44780CommandTranslator command_translator(display);
 #endif
 
-#if ENABLE_SERIAL_DEBUG
+static void maybe_reset_protocol_after_idle() {
+	if (!host_active) {
+		return;
+	}
+	const uint32_t idle_us = static_cast<uint32_t>(micros() - last_rx_micros);
+	if (!protocol_router.maybeResetAfterIdleUs(idle_us)) {
+		return;
+	}
+#if DISPLAY_BACKEND != HD44780
+	command_translator.reset();
+#endif
+	matrix_orbital_parser.reset();
+}
+
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 static constexpr uint16_t SERIAL_WAIT_LOG_THRESHOLD_US = 500;
 static constexpr uint8_t SERIAL_BACKLOG_LOW_WATER = 8;
 
@@ -214,12 +246,6 @@ static void dismiss_startup_screen() {
 void setup() {
 	Serial.begin(BAUDRATE);
 
-	Serial.print(F("ENABLE_SERIAL_DEBUG:"));
-	Serial.println(ENABLE_SERIAL_DEBUG);
-
-	Serial.print(F("ENABLE_VERBOSE_DEBUG_LOGS:"));
-	Serial.println(ENABLE_VERBOSE_DEBUG_LOGS);	
-
 #if ENABLE_SERIAL_DEBUG
 	SerialDebug::setRuntimeEnabled(true);
 	Serial.println(F("debug: instrumentation armed"));
@@ -229,14 +255,18 @@ void setup() {
 	// set up the LCD's number of columns and rows:
 	DEBUG_LOG("setup: display.begin");
 #if ENABLE_SERIAL_DEBUG
+	#if ENABLE_VERBOSE_DEBUG_LOGS
 	const uint32_t display_begin_start = micros();
+	#endif
 #endif
 	display.begin(LCDW, LCDH);
 #if ENABLE_SERIAL_DEBUG
+	#if ENABLE_VERBOSE_DEBUG_LOGS
 	const uint32_t display_begin_duration = micros() - display_begin_start;
+	#endif
 #endif
 	DEBUG_LOG("setup: display.begin complete");
-#if ENABLE_SERIAL_DEBUG
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 	capture_boot_diagnostics(display_begin_duration);
 #endif
 	display.setBacklight(STARTUP_BRIGHTNESS);
@@ -248,7 +278,7 @@ void setup() {
 #endif
 	display_startup_screen();
 	DEBUG_LOG("setup: startup banner drawn");
-#if ENABLE_SERIAL_DEBUG
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 	Serial.print(F("debug: free_sram.after_banner="));
 	Serial.println(free_sram());
 #endif
@@ -258,17 +288,17 @@ void setup() {
 
 int serial_read() {
 	int result = -1;
-#if ENABLE_SERIAL_DEBUG
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 	const uint32_t wait_start = micros();
 	uint16_t spins = 0;
 #endif
 	while(result == -1) {
 		if(Serial.available() > 0) {
 			result = Serial.read();
+			last_rx_micros = micros();
 #if ENABLE_SERIAL_DEBUG
 			++rx_bytes_total;
 			++rx_bytes_since_boot;
-			last_rx_micros = micros();
 			// Always suppress debug logging while bytes are actively arriving.
 			// Otherwise a prior idle-triggered banner (e.g., after a short meta
 			// command) can leave logging enabled during the next burst and cause
@@ -290,17 +320,23 @@ int serial_read() {
 			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
 				serviceDisplayIdleWork();
 			}
+			maybe_reset_protocol_after_idle();
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 			++spins;
+#endif
 		}
 #else
 		else {
+			// NOTE: when ENABLE_SERIAL_DEBUG=0, we still keep the burst-safe idle
+			// refresh behavior (but skip log banners).
 			if (!host_active || (micros() - last_rx_micros) > HOST_IDLE_BEFORE_LOG_US) {
 				serviceDisplayIdleWork();
 			}
+			maybe_reset_protocol_after_idle();
 		}
 #endif
 	}
-#if ENABLE_SERIAL_DEBUG
+#if ENABLE_SERIAL_DEBUG && ENABLE_VERBOSE_DEBUG_LOGS
 	const uint32_t wait_us = micros() - wait_start;
 	const int backlog = Serial.available();
 	if (SerialDebug::isRuntimeEnabled() &&
@@ -315,6 +351,14 @@ int serial_read() {
 	}
 #endif
 	return result;
+}
+
+static uint8_t serial_read_u8() {
+	return static_cast<uint8_t>(serial_read());
+}
+
+static uint8_t router_read_u8() {
+	return protocol_router.read(serial_read_u8);
 }
 
 /**
@@ -340,7 +384,20 @@ https://lcdproc.sourceforge.net/docs/lcdproc-0-5-6-user.html#los-panel
 */
 
 void loop() {
-	cmd = serial_read();
+	const ActiveProtocol previous_protocol = protocol_router.protocol();
+	cmd = protocol_router.read(serial_read_u8);
+
+	const ActiveProtocol current_protocol = protocol_router.protocol();
+	if (current_protocol != previous_protocol && current_protocol != ActiveProtocol::Unknown) {
+		if (current_protocol == ActiveProtocol::LosPanel) {
+#if DISPLAY_BACKEND != HD44780
+			command_translator.reset();
+#endif
+		} else {
+			matrix_orbital_parser.reset();
+		}
+	}
+
 	if (!host_active) {
 		host_active = true;
 #if ENABLE_SERIAL_DEBUG
@@ -358,12 +415,17 @@ void loop() {
 	}
 	// Note: host-active reporting is emitted from the `serial_read()` idle loop
 	// so we still report even when the host stops sending bytes.
-	switch(cmd) {
+
+	if (current_protocol == ActiveProtocol::MatrixOrbital) {
+		matrix_orbital_parser.handleByte(static_cast<uint8_t>(cmd), router_read_u8);
+	} else {
+		// Default and fallback protocol: LOS-PANEL.
+		switch(cmd) {
 			case 0xFC: {
 				// ArduLCDpp meta/control prefix (reserved).
-				const uint8_t subcmd = static_cast<uint8_t>(serial_read());
+				const uint8_t subcmd = router_read_u8();
 				if (subcmd == 0x10) { // SET_STREAMING_MODE
-					const uint8_t mode = static_cast<uint8_t>(serial_read());
+					const uint8_t mode = router_read_u8();
 					const uint8_t normalized = mode ? STREAMING_MODE_SAFE : STREAMING_MODE_IMMEDIATE;
 					if (streaming_mode != normalized) {
 						streaming_mode = normalized;
@@ -374,14 +436,14 @@ void loop() {
 			}
 			case 0xFE:
 #if DISPLAY_BACKEND == HD44780
-				display.command(serial_read());
+				display.command(router_read_u8());
 #else
-				command_translator.handleCommand(static_cast<uint8_t>(serial_read()));
+				command_translator.handleCommand(router_read_u8());
 #endif
 				break;
 			case 0xFD:
 				// backlight control
-				display.setBacklight(serial_read());
+				display.setBacklight(router_read_u8());
 				break;
 			default:
 				// By default we write to the LCD
@@ -393,6 +455,8 @@ void loop() {
 				}
 #endif
 				break;
+		}
 	}
+
 	serviceDisplayIdleWork();
 }

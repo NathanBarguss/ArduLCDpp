@@ -31,7 +31,14 @@ This queue focuses on landing a stable OLED MVP (currently `LCDW=20`, `LCDH=4`) 
 ## Phase 4 - Infrastructure & Documentation
 1. **FEATURE-20260102-automated-test-harness** - Build a host-side tool that replays the smoke-test byte sequences and records structured pass/fail results so we can automate regressions.
 2. **FEATURE-20260102-backlight-calibration** - Calibrate the Nano D11 PWM curve (or document hardware tweaks) so `0xFD` brightness levels produce distinct, predictable intensity steps.
-3. **FEATURE-20260102-refresh-schematics** - Update `resources/wiring_schematic.*` to match the 2026 wiring table (RS=D12, bus on D3–D10, PWM on D11) so docs stop diverging from hardware.
+3. **FEATURE-20260102-refresh-schematics** - Update `resources/wiring_schematic.*` to match the 2026 wiring table (RS=D12, bus on D3-D10, PWM on D11) so docs stop diverging from hardware.
+
+## Phase 5 - Multi-Protocol Bridge (LOS-PANEL + Matrix Orbital)
+1. **FEATURE-20260108-protocol-autodetection** - Runtime selection + lock so the same USB serial port can accept LCDproc (LOS-PANEL) or LCD Smartie (Matrix Orbital) without reflashing or host configuration.
+2. **FEATURE-20260108-matrix-orbital-mvp** - Minimal Matrix Orbital subset for LCD Smartie (20×4), mapped into the unified display backend.
+3. **FEATURE-20260108-protocol-regression-suite** - Multi-protocol tests (LOS/MO + detection) that protect backward compatibility and speed iteration.
+4. **FEATURE-20260108-los-panel-compatibility-gates** - Explicit “do not break LOS-PANEL” contract checks and gate criteria for multi-protocol changes.
+5. **FEATURE-20260108-matrix-orbital-buttons-phase2** - Optional Phase 2 keypad TX for Matrix Orbital mode (no effect in LOS-PANEL).
 
 ## Recently Resolved / Archived References
 - **FEATURE-20251223-platformio-migration** - PlatformIO build + multi-env workflow landed; see `FEATURES/RESOLVED/`.
